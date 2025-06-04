@@ -1,3 +1,4 @@
+use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::{BotStatistic, Container, Order, SharedVec, Statistic, StatisticResult, SystemInfo, TimeRange};
 use crate::tools::sort_bot_statistics;
@@ -76,13 +77,47 @@ pub async fn get_bot_by_name(Path(id): Path<String>, Extension(bots): Extension<
 
     unsafe { bot_vec = &mut *bots.0.get(); }
 
+    let mut bot = Bot {
+        name: "".to_string(),
+        symbol: Symbol::SolUsdt,
+        timeframe: Timeframe::Min1,
+        strategy_name: "".to_string(),
+        strategy: None,
+        capital: 0.0,
+        group: "".to_string(),
+        is_not_active: false,
+        wins: 0,
+        losses: 0,
+        log: "".to_string(),
+        started_at: Default::default(),
+        last_scanned: Default::default(),
+        leverage: 0.0,
+        take_profit_ratio: 0.0,
+        stop_loss_ratio: 0.0,
+        is_trailing_stop_active: false,
+        trailing_stop_activation_point: 0.0,
+        in_pos: false,
+        order_type: OrderCommand::Long,
+        order_created_at: Default::default(),
+        order_scanned_at: Default::default(),
+        order_quantity: 0.0,
+        order_capital: 0.0,
+        order_capital_with_leverage: 0.0,
+        order_entry_price: 0.0,
+        order_stop_loss: 0.0,
+        order_take_profit: 0.0,
+        order_fee: 0.0,
+        pnl: 0.0,
+        roe: 0.0,
+    };
+
     for b in bot_vec.iter() {
         if b.name == id {
-            return Json(b.clone())
+            bot = b.clone();
         }
     }
 
-    Json(Bot::new_dummy())
+    Json(bot)
 }
 
 pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Json<Vec<Bot>> {
