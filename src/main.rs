@@ -1,5 +1,17 @@
+mod tools;
+mod calculator;
+mod enums;
+mod ta;
+mod position_manager;
+mod logger;
+mod bot_manager;
+mod binance_connector;
+mod strategy;
+mod models;
+mod api;
+
+use std::sync::Arc;
 use axum::{
-    extract::Path,
     http::StatusCode,
     routing::get,
     Router,
@@ -7,6 +19,15 @@ use axum::{
 use rust_embed::RustEmbed;
 use mime_guess::MimeGuess;
 use tokio::net::TcpListener;
+use tokio::sync::Mutex;
+use crate::binance_connector::BinanceConnector;
+use crate::bot_manager::BotManager;
+use crate::enums::Symbol::SolUsdt;
+use crate::enums::Timeframe::Min1;
+use crate::logger::init_logger;
+use crate::models::bot::Bot;
+use crate::models::models::ManagerChannel;
+use crate::position_manager::PositionManager;
 
 #[derive(RustEmbed)]
 #[folder = "ui/build"]
@@ -63,6 +84,31 @@ impl Assets {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+
+    init_logger();
+
+    let bots = init_bots();
+
+    let ch = ManagerChannel { for_bot_manager: vec![], for_position_manager: vec![] };
+    let channel = Arc::new(Mutex::new(ch));
+
+
+    let connector = BinanceConnector::new();
+    let mut position_manager = PositionManager::new(connector.clone(), Arc::clone(&channel));
+    let mut bot_manager = BotManager::new(bots, connector, Arc::clone(&channel));
+
+
+    tokio::spawn(async move {
+        loop {
+            position_manager.monitor().await;
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await; // adjust duration as needed
+        }
+    });
+
+    tokio::spawn(async move {
+        bot_manager.start().await;
+    });
+
     // Static assets router
     let assets_router = Assets::router();
 
@@ -83,3 +129,41 @@ async fn main() {
 
     axum::serve(listener, app).await.unwrap();
 }
+
+
+
+
+fn init_bots() -> Vec<Bot> {
+    let mut bots = Vec::new();
+    let capital = 100.0;
+    let leverage = 10.0;
+    let take_profit_ratio = 0.8;
+    let stop_loss_ratio = 0.4;
+    let trailing_stop_activation_point = 0.1;
+
+    let tf = [Min1];
+    let st = ["EmaMacd", "EmaMacd2"];
+    let smb = [SolUsdt];
+
+
+    for t in tf.iter() {
+        for s in st.iter() {
+            for symbol in smb.iter() {
+                let bot = Bot::new(
+                    *t,
+                    *symbol,
+                    s.to_string(),
+                    capital,
+                    leverage,
+                    take_profit_ratio,
+                    stop_loss_ratio,
+                    trailing_stop_activation_point,
+                );
+                bots.push(bot);
+            }
+        }
+    }
+
+    bots
+}
+

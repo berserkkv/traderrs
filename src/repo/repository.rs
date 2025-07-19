@@ -1,0 +1,3 @@
+struct BotRepository;
+
+struct OrderRepository;

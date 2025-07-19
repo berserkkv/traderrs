@@ -1,13 +1,23 @@
 [package]
-name = "axum-svelte"
+name = "traderrs"
 version = "0.1.0"
 edition = "2021"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [dependencies]
 axum = "0.8.4"
 mime_guess = "2.0.5"
 rust-embed = { version = "8.5.0", features = ["interpolate-folder-path"] }
 tokio = { version = "1.39.2", features = ["macros", "net", "rt"] }
+serde = { version = "1.0.206", features = ["derive"] }
+chrono = { version = "0.4.41", features = ["serde"] }
+log = "0.4.22"
+env_logger = "0.11.8"
 
 [build-dependencies]
 npm_rs = "1.0.0"
