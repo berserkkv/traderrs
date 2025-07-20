@@ -5,7 +5,7 @@ use crate::models::models::{Candle, ManagerChannel};
 use crate::strategy::strategy;
 
 use crate::tools::wait_until_next_aligned_tick;
-use chrono::{DateTime, Local, Timelike};
+use chrono::{DateTime, Local, Timelike, Utc};
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, error, info};
 use std::collections::HashMap;
@@ -51,7 +51,10 @@ impl EntryManager {
     }
 
     pub async fn start(&mut self) {
-        debug!("Starting Entry Manager, with total {} bots", self.bots.len());
+        debug!(
+            "Starting Entry Manager, with total {} bots",
+            self.bots.len()
+        );
         let mut now: DateTime<Local>;
         let mut minute: usize;
         let mut hour: usize;
@@ -69,9 +72,6 @@ impl EntryManager {
                 .insert(b.symbol, ());
         }
 
-
-        println!("bots data: {:?}", self.bots_data);
-
         self.send_to_main();
         wait_until_next_aligned_tick(Duration::from_secs(self.smallest_timeframe)).await;
 
@@ -83,7 +83,6 @@ impl EntryManager {
             now = Local::now();
             minute = now.minute() as usize;
             hour = now.hour() as usize;
-
 
             for tf in [Timeframe::Min1, Timeframe::Min5, Timeframe::Min15] {
                 if tf == Timeframe::Min1
@@ -105,6 +104,7 @@ impl EntryManager {
                     Some(data) if !data.is_empty() => data,
                     _ => {
                         bot.log = "Problem with connector".to_string();
+                        bot.last_scanned = Utc::now();
                         debug!("Problem with connector, bot: {}", bot.name);
                         continue;
                     }
@@ -131,7 +131,6 @@ impl EntryManager {
                 }
             }
 
-
             candles_map.clear();
 
             self.send_to_main();
@@ -147,7 +146,7 @@ impl EntryManager {
                 let key = format!("{:?}{:?}", tf, smb);
                 if !candles_map.contains_key(&key) {
                     match self.connector.get_candles(*smb, tf, 202).await {
-                        Ok(candles) => { candles_map.insert(key, candles) }
+                        Ok(candles) => candles_map.insert(key, candles),
                         Err(e) => {
                             error!("Error fetching candles, {}", e);
                             continue;

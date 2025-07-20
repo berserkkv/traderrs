@@ -1,14 +1,14 @@
-mod tools;
-mod calculator;
-mod enums;
-mod ta;
-mod position_manager;
-mod logger;
-mod entry_manager;
-mod binance_connector;
-mod strategy;
-mod models;
 mod api;
+mod binance_connector;
+mod calculator;
+mod entry_manager;
+mod enums;
+mod logger;
+mod models;
+mod position_manager;
+mod strategy;
+mod ta;
+mod tools;
 
 use crate::binance_connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
@@ -26,8 +26,10 @@ use log::info;
 use mime_guess::MimeGuess;
 use rust_embed::RustEmbed;
 use std::sync::Arc;
+use sysinfo::System;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
+use tower_http::cors::{Any, CorsLayer};
 
 #[derive(RustEmbed)]
 #[folder = "ui/build"]
@@ -59,14 +61,16 @@ impl Assets {
                     if let Some((content, mime)) = Assets::get_file(&path_for_closure) {
                         (StatusCode::OK, [("Content-Type", mime)], content)
                     } else {
-                        (StatusCode::NOT_FOUND, [("Content-Type", "text/plain".to_string())], Vec::new())
+                        (
+                            StatusCode::NOT_FOUND,
+                            [("Content-Type", "text/plain".to_string())],
+                            Vec::new(),
+                        )
                     }
                 }
             });
 
-            router = router
-                .route(&route_path, handler.clone());
-
+            router = router.route(&route_path, handler.clone());
 
             // Handle /somepath/ route if the file is /somepath/index.html
             if path_string.ends_with("/index.html") {
@@ -80,14 +84,18 @@ impl Assets {
     }
 }
 
-async fn get_all_bot(Extension(ch): Extension<Arc<ManagerChannel>>) -> Json<Vec<Bot>> {
-    Json(ch.get_bots())
-}
-
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    init_logger();
+    let mut sys = System::new_all();
+
+    for (i, cpu) in sys.cpus().iter().enumerate() {
+        println!("{} - {:?}", i + 1, cpu.cpu_usage());
+    }
+
+    let total = sys.total_memory();
+    let used_memory = sys.used_memory();
+    let used = used_memory * 100 / total;
+    println!("{}", used);
 
     let (ch, from_threads, for_threads) = init_dependencies();
 
@@ -98,15 +106,25 @@ async fn main() {
         if let Some((content, mime)) = Assets::get_file("index.html") {
             (StatusCode::OK, [("Content-Type", mime)], content)
         } else {
-            (StatusCode::NOT_FOUND, [("Content-Type", "text/plain".to_string())], "index.html not found".into())
+            (
+                StatusCode::NOT_FOUND,
+                [("Content-Type", "text/plain".to_string())],
+                "index.html not found".into(),
+            )
         }
     });
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let app = assets_router
         .route("/api/v1/bots", get(get_all_bot))
         .layer(Extension(ch))
         .layer(Extension(for_threads))
         .layer(Extension(from_threads))
+        .layer(cors)
         .fallback(fallback);
 
     let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
@@ -114,20 +132,37 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
+async fn get_all_bot(Extension(ch): Extension<Arc<ManagerChannel>>) -> Json<Vec<Bot>> {
+    Json(ch.get_bots())
+}
+
 fn init_dependencies() -> (Arc<ManagerChannel>, Receiver<Vec<Bot>>, Sender<Vec<Bot>>) {
     let (for_entry_manager, from_position_manager) = channel::unbounded::<Vec<Bot>>();
     let (for_position_manager, from_entry_manager) = channel::unbounded::<Vec<Bot>>();
     let (for_main, from_main) = channel::unbounded::<Vec<Bot>>();
 
-
     let bots = init_bots();
 
     let channel = Arc::new(ManagerChannel::new());
 
-
     let connector = BinanceConnector::new();
-    let mut position_manager = PositionManager::new(connector.clone(), Arc::clone(&channel), from_entry_manager, for_entry_manager, for_main.clone(), from_main.clone());
-    let mut entry_manager = EntryManager::new(bots, connector, Arc::clone(&channel), from_position_manager, for_position_manager, for_main.clone(), from_main.clone());
+    let mut position_manager = PositionManager::new(
+        connector.clone(),
+        Arc::clone(&channel),
+        from_entry_manager,
+        for_entry_manager,
+        for_main.clone(),
+        from_main.clone(),
+    );
+    let mut entry_manager = EntryManager::new(
+        bots,
+        connector,
+        Arc::clone(&channel),
+        from_position_manager,
+        for_position_manager,
+        for_main.clone(),
+        from_main.clone(),
+    );
 
     tokio::spawn(async move {
         position_manager.start().await;
@@ -140,7 +175,6 @@ fn init_dependencies() -> (Arc<ManagerChannel>, Receiver<Vec<Bot>>, Sender<Vec<B
     (channel, from_main, for_main)
 }
 
-
 fn init_bots() -> Vec<Bot> {
     let mut bots = Vec::new();
     let capital = 100.0;
@@ -152,7 +186,6 @@ fn init_bots() -> Vec<Bot> {
     let tf = [Min1];
     let st = ["EmaMacd", "EmaMacd2"];
     let smb = [SolUsdt];
-
 
     for t in tf.iter() {
         for s in st.iter() {
@@ -174,4 +207,3 @@ fn init_bots() -> Vec<Bot> {
 
     bots
 }
-

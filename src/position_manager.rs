@@ -22,12 +22,13 @@ pub struct PositionManager {
 }
 
 impl PositionManager {
-    pub fn new(connector: BinanceConnector,
-               channel: Arc<ManagerChannel>,
-               from_entry_manager: Receiver<Vec<Bot>>,
-               for_entry_manager: Sender<Vec<Bot>>,
-               for_main: Sender<Vec<Bot>>,
-               from_main: Receiver<Vec<Bot>>,
+    pub fn new(
+        connector: BinanceConnector,
+        channel: Arc<ManagerChannel>,
+        from_entry_manager: Receiver<Vec<Bot>>,
+        for_entry_manager: Sender<Vec<Bot>>,
+        for_main: Sender<Vec<Bot>>,
+        from_main: Receiver<Vec<Bot>>,
     ) -> Self {
         Self {
             bots: Vec::new(),
@@ -39,7 +40,6 @@ impl PositionManager {
             from_main,
         }
     }
-
 
     pub async fn start(&mut self) {
         debug!("Starting Position Manager...");
@@ -56,7 +56,9 @@ impl PositionManager {
                 debug!("scanning position {}", b.name);
                 if !prices.contains_key(&b.symbol) {
                     match self.connector.get_price(&b.symbol).await {
-                        Ok(price) => { prices.insert(b.symbol, price); }
+                        Ok(price) => {
+                            prices.insert(b.symbol, price);
+                        }
                         Err(e) => {
                             error!("Error fetching price, {}", e);
                             continue;
@@ -79,7 +81,7 @@ impl PositionManager {
                 } else {
                     update_pnl_and_roe(bot, cur_price);
                     shift_stop_loss(bot);
-                    bot.order_scanned_at = Utc::now();
+                    bot.last_scanned = Utc::now();
                 }
             }
 
@@ -92,7 +94,9 @@ impl PositionManager {
     }
 
     async fn handle_closed_position(&mut self, orders: &Vec<Order>) {
-        if orders.is_empty() { return; }
+        if orders.is_empty() {
+            return;
+        }
 
         for order in orders.iter() {
             info!("Closed order for bot {}: {:?}", order.bot_id, order);
