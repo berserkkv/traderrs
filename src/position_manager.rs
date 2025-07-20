@@ -48,16 +48,20 @@ impl PositionManager {
         loop {
             self.get_from_channel().await;
             if self.bots.is_empty() {
-                debug!("empty bot list");
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
                 continue;
             }
 
             for b in self.bots.iter() {
                 debug!("scanning position {}", b.name);
                 if !prices.contains_key(&b.symbol) {
-                    let price = self.connector.get_price(&b.symbol);
-                    prices.insert(b.symbol, price);
+                    match self.connector.get_price(&b.symbol).await {
+                        Ok(price) => { prices.insert(b.symbol, price); }
+                        Err(e) => {
+                            error!("Error fetching price, {}", e);
+                            continue;
+                        }
+                    }
                 }
             }
 

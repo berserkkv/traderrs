@@ -7,10 +7,7 @@ use std::time::Duration;
 
 pub fn get_close_prices(candles: &[Candle]) -> Vec<f64> {
     let mut close_prices: Vec<f64> = Vec::with_capacity(candles.len());
-
-    for i in 0..candles.len() {
-        close_prices[i] = candles[i].close;
-    }
+    for c in candles { close_prices.push(c.close); }
     close_prices
 }
 pub fn format_timeframe(timeframe: &Timeframe) -> String {

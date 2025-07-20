@@ -1,13 +1,22 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, )]
 pub enum Symbol {
     SolUsdt,
     BtcUsdt,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, Hash, Eq, PartialEq)]
+impl Symbol {
+    pub fn to_string(&self) -> String {
+        match self {
+            Symbol::SolUsdt => String::from("SOLUSDT"),
+            Symbol::BtcUsdt => String::from("BTCUSDT"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Timeframe {
     Min1,
     Min5,

@@ -1,6 +1,7 @@
 use crate::enums::{OrderCommand, Symbol};
 use crate::models::bot::Bot;
 use chrono::{DateTime, Utc};
+use std::cmp::Ordering;
 use std::sync::RwLock;
 
 pub trait Strategy {
@@ -17,7 +18,7 @@ pub struct Candle {
     pub open: f64,
     pub high: f64,
     pub low: f64,
-    pub time: DateTime<Utc>,
+    pub open_time: u64,
     pub volume: f64,
 }
 
@@ -52,6 +53,22 @@ impl ManagerChannel {
         let mut bots = Vec::new();
         bots.append(&mut self.from_position_manager.read().unwrap().clone());
         bots.append(&mut self.from_entry_manager.read().unwrap().clone());
+
+        bots.sort_by(|a, b| {
+            a.is_not_active.cmp(&b.is_not_active)
+                .then(cmp_f64(&(a.capital + a.order_capital), &(b.capital + b.order_capital)))
+                .then(a.timeframe.cmp(&b.timeframe))
+        });
         bots
+    }
+}
+
+
+fn cmp_f64(a: &f64, b: &f64) -> Ordering {
+    match (a.is_nan(), b.is_nan()) {
+        (true, true) => Ordering::Equal,
+        (true, false) => Ordering::Greater,
+        (false, true) => Ordering::Less,
+        (false, false) => a.partial_cmp(b).unwrap(),
     }
 }

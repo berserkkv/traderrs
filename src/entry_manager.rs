@@ -62,6 +62,16 @@ impl EntryManager {
             info!("Bot: {:?}", bot.name);
         }
 
+        for b in self.bots.iter() {
+            self.bots_data
+                .entry(b.timeframe)
+                .or_insert(HashMap::new())
+                .insert(b.symbol, ());
+        }
+
+
+        println!("bots data: {:?}", self.bots_data);
+
         self.send_to_main();
         wait_until_next_aligned_tick(Duration::from_secs(self.smallest_timeframe)).await;
 
@@ -80,7 +90,7 @@ impl EntryManager {
                     || (tf == Timeframe::Min5 && minute % 5 == 0)
                     || (tf == Timeframe::Min15 && minute % 15 == 0)
                 {
-                    self.get_candles(tf, &mut candles_map);
+                    self.get_candles(tf, &mut candles_map).await;
                 }
             }
 
@@ -131,13 +141,18 @@ impl EntryManager {
         }
     }
 
-    fn get_candles(&self, tf: Timeframe, candles: &mut HashMap<String, Vec<Candle>>) {
+    async fn get_candles(&self, tf: Timeframe, candles_map: &mut HashMap<String, Vec<Candle>>) {
         if let Some(set) = self.bots_data.get(&tf) {
             for smb in set.keys() {
                 let key = format!("{:?}{:?}", tf, smb);
-                if !candles.contains_key(&key) {
-                    let data = self.connector.get_candles(*smb, tf, 202);
-                    candles.insert(key, data);
+                if !candles_map.contains_key(&key) {
+                    match self.connector.get_candles(*smb, tf, 202).await {
+                        Ok(candles) => { candles_map.insert(key, candles) }
+                        Err(e) => {
+                            error!("Error fetching candles, {}", e);
+                            continue;
+                        }
+                    };
                 }
             }
         }

@@ -67,13 +67,10 @@ impl Strategy for EmaMacd2 {
         );
 
         if macd_prev < 0.0 && macd > 0.0 && hist > 0.0 && price > ema200 {
-            info!("Long {}", info);
             (OrderCommand::Long, format!("Long {}", info))
         } else if macd_prev > 0.0 && macd < 0.0 && hist < 0.0 && price < ema200 {
-            info!("Short {}", info);
             (OrderCommand::Short, format!("Short {}", info))
         } else {
-            info!("Wait {}", info);
             (OrderCommand::Wait, format!("Wait {}", info))
         }
     }
