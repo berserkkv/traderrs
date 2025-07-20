@@ -80,8 +80,8 @@ impl Assets {
     }
 }
 
-async fn get_all_bot(Extension(ch): Extension<Arc<Mutex<ManagerChannel>>>) -> Json<Vec<Bot>> {
-    Json(ch.lock().await.get_bots())
+async fn get_all_bot(Extension(ch): Extension<Arc<ManagerChannel>>) -> Json<Vec<Bot>> {
+    Json(ch.get_bots())
 }
 
 
@@ -114,7 +114,7 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-fn init_dependencies() -> (Arc<Mutex<ManagerChannel>>, Receiver<Vec<Bot>>, Sender<Vec<Bot>>) {
+fn init_dependencies() -> (Arc<ManagerChannel>, Receiver<Vec<Bot>>, Sender<Vec<Bot>>) {
     let (for_entry_manager, from_position_manager) = channel::unbounded::<Vec<Bot>>();
     let (for_position_manager, from_entry_manager) = channel::unbounded::<Vec<Bot>>();
     let (for_main, from_main) = channel::unbounded::<Vec<Bot>>();
@@ -122,8 +122,7 @@ fn init_dependencies() -> (Arc<Mutex<ManagerChannel>>, Receiver<Vec<Bot>>, Sende
 
     let bots = init_bots();
 
-    let ch = ManagerChannel::new();
-    let channel = Arc::new(Mutex::new(ch));
+    let channel = Arc::new(ManagerChannel::new());
 
 
     let connector = BinanceConnector::new();

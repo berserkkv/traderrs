@@ -1,6 +1,7 @@
 use crate::enums::{OrderCommand, Symbol};
 use crate::models::bot::Bot;
 use chrono::{DateTime, Utc};
+use std::sync::RwLock;
 
 pub trait Strategy {
     fn name(&self) -> &str;
@@ -38,19 +39,19 @@ pub struct Order {
 
 #[derive(Debug)]
 pub struct ManagerChannel {
-    pub from_entry_manager: Vec<Bot>,
-    pub from_position_manager: Vec<Bot>,
+    pub from_entry_manager: RwLock<Vec<Bot>>,
+    pub from_position_manager: RwLock<Vec<Bot>>,
 }
 
 impl ManagerChannel {
     pub fn new() -> Self {
-        Self { from_entry_manager: Vec::new(), from_position_manager: Vec::new() }
+        Self { from_entry_manager: RwLock::new(Vec::new()), from_position_manager: RwLock::new(Vec::new()) }
     }
 
     pub fn get_bots(&self) -> Vec<Bot> {
         let mut bots = Vec::new();
-        bots.append(&mut self.from_position_manager.clone());
-        bots.append(&mut self.from_entry_manager.clone());
+        bots.append(&mut self.from_position_manager.read().unwrap().clone());
+        bots.append(&mut self.from_entry_manager.read().unwrap().clone());
         bots
     }
 }

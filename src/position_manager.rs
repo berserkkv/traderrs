@@ -14,7 +14,7 @@ use tokio::sync::Mutex;
 pub struct PositionManager {
     bots: Vec<Bot>,
     connector: BinanceConnector,
-    channel: Arc<Mutex<ManagerChannel>>,
+    channel: Arc<ManagerChannel>,
     from_entry_manager: Receiver<Vec<Bot>>,
     for_entry_manager: Sender<Vec<Bot>>,
     for_main: Sender<Vec<Bot>>,
@@ -23,7 +23,7 @@ pub struct PositionManager {
 
 impl PositionManager {
     pub fn new(connector: BinanceConnector,
-               channel: Arc<Mutex<ManagerChannel>>,
+               channel: Arc<ManagerChannel>,
                from_entry_manager: Receiver<Vec<Bot>>,
                for_entry_manager: Sender<Vec<Bot>>,
                for_main: Sender<Vec<Bot>>,
@@ -118,9 +118,8 @@ impl PositionManager {
     }
 
     async fn send_to_main(&mut self) {
-        if let mut c = self.channel.try_lock().unwrap() {
-            c.from_position_manager.clear();
-            c.from_position_manager.append(&mut self.bots.clone());
-        }
+        let v = &mut self.channel.from_position_manager.write().unwrap();
+        v.clear();
+        v.append(&mut self.bots.clone());
     }
 }

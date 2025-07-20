@@ -20,7 +20,7 @@ pub struct EntryManager {
     bots_data: HashMap<Timeframe, HashMap<Symbol, ()>>,
     connector: BinanceConnector,
     smallest_timeframe: u64,
-    channel: Arc<Mutex<ManagerChannel>>,
+    channel: Arc<ManagerChannel>,
     from_position_manager: Receiver<Vec<Bot>>,
     for_position_manager: Sender<Vec<Bot>>,
     for_main: Sender<Vec<Bot>>,
@@ -31,7 +31,7 @@ impl EntryManager {
     pub fn new(
         bots: Vec<Bot>,
         connector: BinanceConnector,
-        channel: Arc<Mutex<ManagerChannel>>,
+        channel: Arc<ManagerChannel>,
         from_position_manager: Receiver<Vec<Bot>>,
         for_position_manager: Sender<Vec<Bot>>,
         for_main: Sender<Vec<Bot>>,
@@ -144,9 +144,8 @@ impl EntryManager {
     }
 
     fn send_to_main(&mut self) {
-        if let b = &mut self.channel.try_lock().unwrap() {
-            b.from_entry_manager.clear();
-            b.from_entry_manager.append(&mut self.bots.clone());
-        }
+        let v = &mut self.channel.from_entry_manager.write().unwrap();
+        v.clear();
+        v.append(&mut self.bots.clone());
     }
 }
