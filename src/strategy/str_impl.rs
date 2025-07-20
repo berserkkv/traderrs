@@ -47,8 +47,7 @@ impl Strategy for EmaMacd2 {
     fn run(&self, candles: &[Candle]) -> (OrderCommand, String) {
         if candles.is_empty() {
             debug!("candles is empty");
-            return (OrderCommand::Long, format!("Long {}", "test"));
-            // return (OrderCommand::Wait, "candles is empty".to_string());
+            return (OrderCommand::Wait, "candles is empty".to_string());
         }
 
         let closes = tools::get_close_prices(candles);

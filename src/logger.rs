@@ -13,13 +13,13 @@ pub fn init_logger() {
     let level = if cfg!(debug_assertions) {
         env::var("RUST_LOG").unwrap_or("info".to_string())
     } else {
-        "off".to_string()
+        env::var("RUST_LOG").unwrap_or("off".to_string())
     };
 
     builder.parse_filters(&level);
 
     builder.format(move |buf, record| {
-        let mut s = "";
+        let s: &str;
         match record.level() {
             log::Level::Error => { s = "E" }
             log::Level::Warn => { s = "W" }

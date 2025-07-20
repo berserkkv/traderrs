@@ -1,7 +1,5 @@
-use crate::bot_manager::BotManager;
 use crate::enums::{OrderCommand, Symbol};
 use crate::models::bot::Bot;
-use crate::position_manager::PositionManager;
 use chrono::{DateTime, Utc};
 
 pub trait Strategy {
@@ -40,38 +38,19 @@ pub struct Order {
 
 #[derive(Debug)]
 pub struct ManagerChannel {
-    pub for_bot_manager: Vec<Bot>,
-    pub for_position_manager: Vec<Bot>,
+    pub from_entry_manager: Vec<Bot>,
+    pub from_position_manager: Vec<Bot>,
 }
 
 impl ManagerChannel {
-    pub fn new(for_bot_manager: Vec<Bot>, for_position_manager: Vec<Bot>) -> Self {
-        Self { for_bot_manager, for_position_manager }
+    pub fn new() -> Self {
+        Self { from_entry_manager: Vec::new(), from_position_manager: Vec::new() }
     }
 
     pub fn get_bots(&self) -> Vec<Bot> {
         let mut bots = Vec::new();
-        bots.append(&mut self.for_bot_manager.clone());
-        bots.append(&mut self.for_position_manager.clone());
-        bots
-    }
-}
-
-#[derive(Debug)]
-pub struct Container<'a> {
-    pub bot_manager: &'a BotManager,
-    pub position_manager: &'a PositionManager,
-}
-
-impl<'a> Container<'a> {
-    pub fn new(bot_manager: &'a BotManager, position_manager: &'a PositionManager) -> Self {
-        Self { bot_manager, position_manager }
-    }
-
-    pub fn get_bots(&self) -> Vec<Bot> {
-        let mut bots = Vec::new();
-        bots.append(self.bot_manager.bots.clone().as_mut());
-
+        bots.append(&mut self.from_position_manager.clone());
+        bots.append(&mut self.from_entry_manager.clone());
         bots
     }
 }

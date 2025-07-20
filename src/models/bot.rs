@@ -1,4 +1,6 @@
 use crate::calculator::{calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss, calculate_take_profit, calculate_taker_fee};
+use crate::enums::Symbol::SolUsdt;
+use crate::enums::Timeframe::Min1;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::models::Order;
 use crate::tools;
@@ -7,7 +9,6 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Bot {
@@ -17,6 +18,7 @@ pub struct Bot {
     pub timeframe: Timeframe,
     pub strategy_name: String,
     pub capital: f64,
+    pub group: String,
     pub is_not_active: bool,
 
     pub wins: i16,
@@ -66,6 +68,7 @@ impl Bot {
             is_not_active: false,
             timeframe,
             strategy_name,
+            group: format!("{:?}{:?}", timeframe, symbol),
             capital,
             last_scanned: now,
             log: "".to_string(),
@@ -93,6 +96,47 @@ impl Bot {
             pnl: 0.0,
             roe: 0.0,
 
+        }
+    }
+
+    pub fn new_dummy() -> Self {
+        let name = format!("{}", "Dummy");
+        let now = Utc::now();
+
+        Self {
+            id: 1000,
+            name,
+            symbol: SolUsdt,
+            is_not_active: false,
+            timeframe: Min1,
+            strategy_name: "Macd".to_string(),
+            capital: 1000.0,
+            last_scanned: now,
+            log: "".to_string(),
+            group: "".to_string(),
+
+            wins: 0,
+            losses: 0,
+
+            leverage: 10.0,
+            take_profit_ratio: 1.0,
+            stop_loss_ratio: 0.5,
+            is_trailing_stop_active: true,
+            trailing_stop_activation_point: 1.0,
+
+            in_pos: false,
+            order_type: OrderCommand::Wait,
+            order_created_at: DateTime::from(now),
+            order_scanned_at: DateTime::from(now),
+            order_quantity: 0.0,
+            order_capital: 0.0,
+            order_capital_with_leverage: 0.0,
+            order_entry_price: 0.0,
+            order_stop_loss: 0.0,
+            order_take_profit: 0.0,
+            order_fee: 0.0,
+            pnl: 0.0,
+            roe: 0.0,
         }
     }
 
@@ -220,24 +264,4 @@ static BOT_ID_COUNTER: AtomicI64 = AtomicI64::new(1);
 
 fn generate_bot_id() -> i64 {
     BOT_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Bots {
-    pub(crate) bots: Vec<Bot>,
-}
-
-impl Bots {
-    pub fn new() -> Bots {
-        Bots { bots: Vec::new() }
-    }
-
-    pub fn add_bot(&mut self, bot: Bot) {
-        self.bots.push(bot);
-    }
-
-    pub
-    fn get(&self) -> &Vec<Bot> {
-        &self.bots
-    }
 }

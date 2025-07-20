@@ -67,6 +67,7 @@
 </style>
 
 <div>
+    bots
     {#each data.bots as bot}
         <div class="bot-card {bot.id % 2 === 0 ? 'highlight' : ''}">
             <a href={`/bot/${bot.id}`}>
@@ -86,7 +87,7 @@
                     <span>log: </span><span>{bot.log}</span>
                 </div>
             </a>
-            {#if !bot.in_pos}
+            {#if bot.in_pos}
                 <div>
                     {parseIsoToDate(bot.order_created_at)}
 

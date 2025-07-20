@@ -2,6 +2,7 @@ use crate::calculator::{calculate_pnl, calculate_roe};
 use crate::enums::{OrderCommand, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::Candle;
+use log::debug;
 use std::time::Duration;
 
 pub fn get_close_prices(candles: &[Candle]) -> Vec<f64> {
@@ -20,7 +21,6 @@ pub fn format_timeframe(timeframe: &Timeframe) -> String {
     }
 }
 
-
 pub fn should_close_position(price: f64, bot: &Bot) -> bool {
     match bot.order_type {
         OrderCommand::Long => price <= bot.order_stop_loss || price >= bot.order_take_profit,
@@ -34,8 +34,33 @@ pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
     bot.roe = calculate_roe(bot.order_entry_price, price, bot.leverage, &bot.order_type);
 }
 
-pub fn shift_stop_loss(_bot: &mut Bot) {
-    // TODO: implement trailing stop logic here
+pub fn shift_stop_loss(bot: &mut Bot) {
+    if bot.is_trailing_stop_active { return; }
+
+    let real_roe = bot.roe / bot.leverage;
+
+    if real_roe <= bot.trailing_stop_activation_point { return; }
+
+    let pnl_decimal = real_roe / 100.0;
+    let mut shift = pnl_decimal / 2.0;
+
+    if real_roe < bot.trailing_stop_activation_point {
+        shift = 0.0;
+    }
+    let mut new_stop_loss: f64;
+    if bot.order_type == OrderCommand::Long {
+        new_stop_loss = bot.order_entry_price * (1.0 + shift);
+        if new_stop_loss > bot.order_stop_loss {
+            debug!("Stop loss shifted, new stop loss: {}", new_stop_loss);
+            bot.order_stop_loss = new_stop_loss;
+        }
+    } else if bot.order_type == OrderCommand::Short {
+        new_stop_loss = bot.order_entry_price * (1.0 - shift);
+        if new_stop_loss < bot.order_stop_loss {
+            debug!("Stop loss shifted, new stop loss: {}", new_stop_loss);
+            bot.order_stop_loss = new_stop_loss;
+        }
+    }
 }
 
 pub async fn wait_until_next_aligned_tick(interval: Duration) {

@@ -21,15 +21,6 @@ pub enum OrderCommand {
     Wait,
 }
 
-impl Symbol {
-    pub fn to_string(&self) -> &'static str {
-        match self {
-            Symbol::SolUsdt => "SOLUSDT",
-            Symbol::BtcUsdt => "BTCUSDT",
-        }
-    }
-}
-
 
 impl Timeframe {
     pub fn to_string(&self) -> &'static str {
