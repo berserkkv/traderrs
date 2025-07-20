@@ -82,13 +82,6 @@ impl Assets {
 
 async fn get_all_bot(Extension(ch): Extension<Arc<Mutex<ManagerChannel>>>) -> Json<Vec<Bot>> {
     Json(ch.lock().await.get_bots())
-
-    // let mut v = Vec::new();
-    // for _ in 0..10 {
-    //     v.push(Bot::new(Min1, SolUsdt, "EmaMacd".to_string(), 100.0, 10.0, 1.0, 0.5, 1.0))
-    // }
-    //
-    // Json(v)
 }
 
 
