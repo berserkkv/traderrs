@@ -97,6 +97,7 @@ async fn main() {
     // let used = used_memory * 100 / total;
     // println!("{}", used);
 
+    #[cfg(debug_assertions)]
     init_logger();
 
     let (ch, from_threads, for_threads) = init_dependencies();

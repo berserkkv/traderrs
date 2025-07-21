@@ -18,7 +18,7 @@ serde = { version = "1.0.206", features = ["derive"] }
 chrono = { version = "0.4.41", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 log = "0.4.22"
-env_logger = "0.11.8"
+env_logger = { version = "0.11.8" }
 crossbeam = "0.8.4"
 serde_json = "1.0.124"
 tower-http = { version = "0.6.6", features = ["cors"] }
@@ -26,3 +26,4 @@ sysinfo = "0.36.1"
 
 [build-dependencies]
 npm_rs = "1.0.0"
+

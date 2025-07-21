@@ -18,46 +18,50 @@ pub fn init_logger() {
 
     builder.parse_filters(&level);
 
-    builder.format(move |buf, record| {
-        let s: &str;
-        match record.level() {
-            log::Level::Error => { s = "E" }
-            log::Level::Warn => { s = "W" }
-            log::Level::Info => { s = "I" }
-            log::Level::Debug => { s = "D" }
-            log::Level::Trace => { s = "T" }
-        }
-        let level_style = buf.default_level_style(record.level());
-        let file = record.file().unwrap_or("<unknown>");
-        let line = record.line().unwrap_or(0);
+    builder
+        .format(move |buf, record| {
+            let s: &str;
+            match record.level() {
+                log::Level::Error => s = "E",
+                log::Level::Warn => s = "W",
+                log::Level::Info => s = "I",
+                log::Level::Debug => s = "D",
+                log::Level::Trace => s = "T",
+            }
+            let level_style = buf.default_level_style(record.level());
+            let file = record.file().unwrap_or("<unknown>");
+            let line = record.line().unwrap_or(0);
 
-        let mut abs_path = project_root.clone();
-        abs_path.push(file);
+            let mut abs_path = project_root.clone();
+            abs_path.push(file);
 
-        let file_url = format!("file://{}:{}", abs_path.display(), line);
+            let file_url = format!("file://{}:{}", abs_path.display(), line);
 
-        // OSC 8 hyperlink format: \x1b]8;;<link>\x1b\\<text>\x1b]8;;\x1b\\
-        let link_start = format!("\x1b]8;;{}\x1b\\", file_url);
-        let link_end = "\x1b]8;;\x1b\\";
+            // OSC 8 hyperlink format: \x1b]8;;<link>\x1b\\<text>\x1b]8;;\x1b\\
+            let link_start = format!("\x1b]8;;{}\x1b\\", file_url);
+            let link_end = "\x1b]8;;\x1b\\";
 
+            write!(buf, "{}[{}]", level_style, s.to_string()).expect("TODO: panic message");
+            let level_style = level_style.fg_color(Some(Color::from(RgbColor {
+                0: 210,
+                1: 210,
+                2: 210,
+            })));
+            write!(buf, " {}{} ", level_style, record.args()).expect("TODO: panic message");
 
-        write!(buf, "{}[{}]", level_style, s.to_string()).expect("TODO: panic message");
-        let level_style = level_style.fg_color(Some(Color::from(RgbColor {
-            0: 210,
-            1: 210,
-            2: 210,
-        })));
-        write!(buf, " {}{} ", level_style, record.args()).expect("TODO: panic message");
-
-
-        let level_style = level_style.fg_color(Some(Color::from(RgbColor {
-            0: 45,
-            1: 151,
-            2: 227,
-        })));
-        write!(buf, "{}[{}{}:{}{}]", level_style, link_start, file, line, link_end).expect("TODO: panic message");
-        writeln!(buf)
-    })
+            let level_style = level_style.fg_color(Some(Color::from(RgbColor {
+                0: 45,
+                1: 151,
+                2: 227,
+            })));
+            write!(
+                buf,
+                "{}[{}{}:{}{}]",
+                level_style, link_start, file, line, link_end
+            )
+            .expect("TODO: panic message");
+            writeln!(buf)
+        })
         .init();
 }
 
