@@ -85,7 +85,7 @@ impl PositionManager {
                 }
             }
 
-            self.handle_closed_position(&to_close).await;
+            self.handle_closed_position(&mut to_close).await;
             self.send_to_main().await;
             prices.clear();
             to_close.clear();
@@ -93,14 +93,11 @@ impl PositionManager {
         }
     }
 
-    async fn handle_closed_position(&mut self, orders: &Vec<Order>) {
+    async fn handle_closed_position(&mut self, orders: &mut Vec<Order>) {
         if orders.is_empty() {
             return;
         }
 
-        for order in orders.iter() {
-            info!("Closed order for bot {}: {:?}", order.bot_id, order);
-        }
         let mut closed_bots = Vec::with_capacity(orders.len());
 
         self.bots.retain(|b| {
@@ -117,6 +114,9 @@ impl PositionManager {
                 error!("Failed to send closed bots");
             }
         }
+
+        let mut o = self.channel.orders.write().unwrap();
+        o.append(orders);
     }
 
     async fn get_from_channel(&mut self) {

@@ -42,11 +42,16 @@ pub struct Order {
 pub struct ManagerChannel {
     pub from_entry_manager: RwLock<Vec<Bot>>,
     pub from_position_manager: RwLock<Vec<Bot>>,
+    pub orders: RwLock<Vec<Order>>,
 }
 
 impl ManagerChannel {
     pub fn new() -> Self {
-        Self { from_entry_manager: RwLock::new(Vec::new()), from_position_manager: RwLock::new(Vec::new()) }
+        Self {
+            from_entry_manager: RwLock::new(Vec::new()),
+            from_position_manager: RwLock::new(Vec::new()),
+            orders: RwLock::new(Vec::new()),
+        }
     }
 
     pub fn get_bots(&self) -> Vec<Bot> {
@@ -55,14 +60,17 @@ impl ManagerChannel {
         bots.append(&mut self.from_entry_manager.read().unwrap().clone());
 
         bots.sort_by(|a, b| {
-            a.is_not_active.cmp(&b.is_not_active)
-                .then(cmp_f64(&(a.capital + a.order_capital), &(b.capital + b.order_capital)))
+            a.is_not_active
+                .cmp(&b.is_not_active)
+                .then(cmp_f64(
+                    &(a.capital + a.order_capital),
+                    &(b.capital + b.order_capital),
+                ))
                 .then(a.timeframe.cmp(&b.timeframe))
         });
         bots
     }
 }
-
 
 fn cmp_f64(a: &f64, b: &f64) -> Ordering {
     match (a.is_nan(), b.is_nan()) {

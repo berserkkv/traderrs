@@ -111,7 +111,6 @@ impl EntryManager {
                 };
 
                 let cmd = strategy::get_strategy(&bot.strategy_name).run(c);
-                info!("bot: {}, command {:?}", bot.name, cmd.0);
 
                 match cmd.0 {
                     OrderCommand::Long | OrderCommand::Short => {
@@ -119,15 +118,17 @@ impl EntryManager {
                             opened_bots.push(bot.clone());
                         }
                     }
-                    _ => {}
+                    _ => {
+                        bot.log = cmd.1;
+                    }
                 }
             }
 
             if !opened_bots.is_empty() {
-                if !self.for_position_manager.send(opened_bots).is_ok() {
-                    error!("Failed to send opened bots");
-                } else {
+                if self.for_position_manager.send(opened_bots).is_ok() {
                     self.bots.retain(|b| !b.in_pos);
+                } else {
+                    error!("Failed to send opened bots through channel");
                 }
             }
 

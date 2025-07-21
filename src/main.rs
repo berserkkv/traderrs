@@ -86,16 +86,18 @@ impl Assets {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let mut sys = System::new_all();
+    // let mut sys = System::new_all();
+    //
+    // for (i, cpu) in sys.cpus().iter().enumerate() {
+    //     println!("{} - {:?}", i + 1, cpu.cpu_usage());
+    // }
+    //
+    // let total = sys.total_memory();
+    // let used_memory = sys.used_memory();
+    // let used = used_memory * 100 / total;
+    // println!("{}", used);
 
-    for (i, cpu) in sys.cpus().iter().enumerate() {
-        println!("{} - {:?}", i + 1, cpu.cpu_usage());
-    }
-
-    let total = sys.total_memory();
-    let used_memory = sys.used_memory();
-    let used = used_memory * 100 / total;
-    println!("{}", used);
+    init_logger();
 
     let (ch, from_threads, for_threads) = init_dependencies();
 
