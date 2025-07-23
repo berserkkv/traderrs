@@ -7,14 +7,18 @@ use std::time::Duration;
 
 pub fn get_close_prices(candles: &[Candle]) -> Vec<f64> {
     let mut close_prices: Vec<f64> = Vec::with_capacity(candles.len());
-    for c in candles { close_prices.push(c.close); }
+    for c in candles {
+        close_prices.push(c.close);
+    }
     close_prices
 }
 pub fn format_timeframe(timeframe: &Timeframe) -> String {
     match timeframe {
-        Timeframe::Min1 => { "1m".to_string() }
-        Timeframe::Min5 => { "5m".to_string() }
-        Timeframe::Min15 => { "15m".to_string() }
+        Timeframe::Min1 => "1m".to_string(),
+        Timeframe::Min5 => "5m".to_string(),
+        Timeframe::Min15 => "15m".to_string(),
+        Timeframe::Hour1 => "1h".to_string(),
+        Timeframe::Day => "1d".to_string(),
     }
 }
 
@@ -27,16 +31,25 @@ pub fn should_close_position(price: f64, bot: &Bot) -> bool {
 }
 
 pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
-    bot.pnl = calculate_pnl(price, bot.order_capital_with_leverage, bot.order_quantity, &bot.order_type);
+    bot.pnl = calculate_pnl(
+        price,
+        bot.order_capital_with_leverage,
+        bot.order_quantity,
+        &bot.order_type,
+    );
     bot.roe = calculate_roe(bot.order_entry_price, price, bot.leverage, &bot.order_type);
 }
 
 pub fn shift_stop_loss(bot: &mut Bot) {
-    if bot.is_trailing_stop_active { return; }
+    if bot.is_trailing_stop_active {
+        return;
+    }
 
     let real_roe = bot.roe / bot.leverage;
 
-    if real_roe <= bot.trailing_stop_activation_point { return; }
+    if real_roe <= bot.trailing_stop_activation_point {
+        return;
+    }
 
     let pnl_decimal = real_roe / 100.0;
     let mut shift = pnl_decimal / 2.0;

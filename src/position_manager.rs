@@ -3,7 +3,7 @@ use crate::enums::Symbol;
 use crate::models::bot::Bot;
 use crate::models::models::{ManagerChannel, Order};
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
-use chrono::Utc;
+use chrono::{FixedOffset, Utc};
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, error, info};
 use std::collections::HashMap;
@@ -45,12 +45,15 @@ impl PositionManager {
         debug!("Starting Position Manager...");
         let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(self.bots.len());
         let mut to_close: Vec<Order> = Vec::with_capacity(self.bots.len());
+        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+        let mut now = Utc::now().with_timezone(&offset);
         loop {
             self.get_from_channel().await;
             if self.bots.is_empty() {
                 tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
                 continue;
             }
+            now = Utc::now().with_timezone(&offset);
 
             for b in self.bots.iter() {
                 debug!("scanning position {}", b.name);
@@ -81,7 +84,7 @@ impl PositionManager {
                 } else {
                     update_pnl_and_roe(bot, cur_price);
                     shift_stop_loss(bot);
-                    bot.last_scanned = Utc::now();
+                    bot.last_scanned = now;
                 }
             }
 
@@ -89,7 +92,7 @@ impl PositionManager {
             self.send_to_main().await;
             prices.clear();
             to_close.clear();
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         }
     }
 

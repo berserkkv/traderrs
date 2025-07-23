@@ -1,10 +1,13 @@
-use crate::calculator::{calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss, calculate_take_profit, calculate_taker_fee};
+use crate::calculator::{
+    calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss,
+    calculate_take_profit, calculate_taker_fee,
+};
 use crate::enums::Symbol::SolUsdt;
 use crate::enums::Timeframe::Min1;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::models::Order;
 use crate::tools;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Utc};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -25,7 +28,7 @@ pub struct Bot {
     pub losses: i16,
 
     pub log: String,
-    pub last_scanned: DateTime<Utc>,
+    pub last_scanned: DateTime<FixedOffset>,
 
     pub leverage: f64,
     pub take_profit_ratio: f64,
@@ -35,8 +38,8 @@ pub struct Bot {
 
     pub in_pos: bool,
     pub order_type: OrderCommand,
-    pub order_created_at: DateTime<Utc>,
-    pub order_scanned_at: DateTime<Utc>,
+    pub order_created_at: DateTime<FixedOffset>,
+    pub order_scanned_at: DateTime<FixedOffset>,
     pub order_quantity: f64,
     pub order_capital: f64,
     pub order_capital_with_leverage: f64,
@@ -58,8 +61,14 @@ impl Bot {
         stop_loss_ratio: f64,
         trailing_stop_activation_ratio: f64,
     ) -> Self {
-        let name = format!("{}_{}_{}", strategy_name, tools::format_timeframe(&timeframe), format_symbol(&symbol));
-        let now = Utc::now();
+        let name = format!(
+            "{}_{}_{}",
+            strategy_name,
+            tools::format_timeframe(&timeframe),
+            format_symbol(&symbol)
+        );
+        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+        let now = Utc::now().with_timezone(&offset);
 
         Self {
             id: generate_bot_id(),
@@ -84,8 +93,8 @@ impl Bot {
 
             in_pos: false,
             order_type: OrderCommand::Wait,
-            order_created_at: DateTime::from(now),
-            order_scanned_at: DateTime::from(now),
+            order_created_at: now,
+            order_scanned_at: now,
             order_quantity: 0.0,
             order_capital: 0.0,
             order_capital_with_leverage: 0.0,
@@ -95,13 +104,13 @@ impl Bot {
             order_fee: 0.0,
             pnl: 0.0,
             roe: 0.0,
-
         }
     }
 
     pub fn new_dummy() -> Self {
         let name = format!("{}", "Dummy");
-        let now = Utc::now();
+        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+        let now = Utc::now().with_timezone(&offset);
 
         Self {
             id: 1000,
@@ -142,15 +151,24 @@ impl Bot {
 
     pub fn can_open_position(&self) -> Result<(), Box<dyn Error>> {
         if self.is_not_active {
-            debug!("bot can't open position, bot not active, name: {}", self.name);
+            debug!(
+                "bot can't open position, bot not active, name: {}",
+                self.name
+            );
             return Err("bot can't open position, bot not active".into());
         }
         if self.in_pos {
-            debug!("bot can't open position, bot is already in open position, name: {}", self.name);
+            debug!(
+                "bot can't open position, bot is already in open position, name: {}",
+                self.name
+            );
             return Err("bot can't open position, bot is already in open position".into());
         }
         if self.capital <= 85.0 {
-            debug!("bot can't open position, capital <= 85.0, name: {}", self.name);
+            debug!(
+                "bot can't open position, capital <= 85.0, name: {}",
+                self.name
+            );
             return Err("bot can't open position, capital <= 85.0, name".into());
         }
 
@@ -163,7 +181,8 @@ impl Bot {
         let price = 0.0;
         self.order_type = *command;
         self.order_stop_loss = calculate_stop_loss(price, self.stop_loss_ratio, &self.order_type);
-        self.order_take_profit = calculate_take_profit(price, self.take_profit_ratio, &self.order_type);
+        self.order_take_profit =
+            calculate_take_profit(price, self.take_profit_ratio, &self.order_type);
 
         let mut capital = self.capital;
         self.capital -= capital;
@@ -171,7 +190,8 @@ impl Bot {
         let fee = calculate_taker_fee(capital);
         capital -= fee;
 
-        let now = Utc::now();
+        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+        let now = Utc::now().with_timezone(&offset);
 
         self.order_capital_with_leverage = self.leverage * capital;
         self.order_capital = capital;
@@ -203,8 +223,21 @@ impl Bot {
         self.order_capital_with_leverage -= fee;
         self.order_capital -= fee;
 
-        let pnl = calculate_pnl(cur_price, self.order_capital_with_leverage, self.order_quantity, &self.order_type);
-        let roe = calculate_roe(self.order_entry_price, cur_price, self.leverage, &self.order_type);
+        let pnl = calculate_pnl(
+            cur_price,
+            self.order_capital_with_leverage,
+            self.order_quantity,
+            &self.order_type,
+        );
+        let roe = calculate_roe(
+            self.order_entry_price,
+            cur_price,
+            self.leverage,
+            &self.order_type,
+        );
+
+        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+        let now = Utc::now().with_timezone(&offset);
 
         self.update_statistics(pnl);
 
@@ -222,7 +255,7 @@ impl Bot {
             pnl,
             roe,
             created_at: self.order_created_at,
-            closed_at: Utc::now(),
+            closed_at: now,
             fee: self.order_fee,
             leverage: self.leverage,
         };
@@ -235,10 +268,10 @@ impl Bot {
         self.order_type = OrderCommand::Wait;
         self.order_capital = 0.0;
         self.order_capital_with_leverage = 0.0;
-        self.order_created_at = Utc::now();
+        self.order_created_at = now;
         self.order_quantity = 0.0;
         self.order_fee = 0.0;
-        self.order_scanned_at = Utc::now();
+        self.order_scanned_at = now;
         self.pnl = 0.0;
         self.roe = 0.0;
 
@@ -258,7 +291,6 @@ fn format_symbol(symbol: &Symbol) -> String {
     let s = format!("{:?}", symbol);
     s.strip_suffix("Usdt").unwrap_or(&s).to_string()
 }
-
 
 static BOT_ID_COUNTER: AtomicI64 = AtomicI64::new(1);
 

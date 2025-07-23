@@ -130,7 +130,7 @@ async fn main() {
         .layer(cors)
         .fallback(fallback);
 
-    let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
     info!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }

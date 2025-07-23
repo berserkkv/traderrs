@@ -1,6 +1,6 @@
 use crate::enums::{OrderCommand, Symbol};
 use crate::models::bot::Bot;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Utc};
 use std::cmp::Ordering;
 use std::sync::RwLock;
 
@@ -32,8 +32,8 @@ pub struct Order {
     pub quantity: f64,
     pub pnl: f64,
     pub roe: f64,
-    pub created_at: DateTime<Utc>,
-    pub closed_at: DateTime<Utc>,
+    pub created_at: DateTime<FixedOffset>,
+    pub closed_at: DateTime<FixedOffset>,
     pub fee: f64,
     pub leverage: f64,
 }

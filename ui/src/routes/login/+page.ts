@@ -1,6 +1,5 @@
 export async function load({fetch}) {
-    const res = await fetch('http://0.0.0.0:8080/api/v1/bots');
+    const res = await fetch('http://localhost:3030/api/v1/bots');
     const bots = await res.json();
-    console.log("bots: ", bots);
     return {bots};
 }
