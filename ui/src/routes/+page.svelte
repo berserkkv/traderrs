@@ -94,7 +94,7 @@
                     <!--                    </div>-->
                     <div class="text-right text-sm text-gray-300">
                         <span>
-                    {(b.capital + b.order_capital).toFixed(1)}  </span>
+                    {(b.capital + b.order_capital).toFixed(2)}  </span>
                         <div class=" text-neutral-500 text-right  text-tight">
                             {parseIsoToDate(b.last_scanned)}
                         </div>

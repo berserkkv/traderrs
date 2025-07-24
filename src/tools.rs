@@ -25,7 +25,7 @@ pub fn should_close_position(price: f64, bot: &Bot) -> bool {
     match bot.order_type {
         OrderCommand::Long => price <= bot.order_stop_loss || price >= bot.order_take_profit,
         OrderCommand::Short => price >= bot.order_stop_loss || price <= bot.order_take_profit,
-        _ => true,
+        _ => false,
     }
 }
 

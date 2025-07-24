@@ -78,7 +78,7 @@ impl PositionManager {
 
                 let cur_price = prices[&bot.symbol];
 
-                if !should_close_position(cur_price, bot) {
+                if should_close_position(cur_price, bot) {
                     if let Ok(order) = bot.close_position(cur_price) {
                         to_close.push(order);
                     }

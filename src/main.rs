@@ -84,10 +84,8 @@ impl Assets {
     }
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() {
-    get_system_usage().await;
-
     #[cfg(debug_assertions)]
     init_logger();
 

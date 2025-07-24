@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BINARY_NAME="traderrust"
+BINARY_NAME="traderrs"
 TARGET_DIR="target/release"
 
 REMOTE_USER="n"
