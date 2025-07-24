@@ -18,7 +18,6 @@ pub fn format_timeframe(timeframe: &Timeframe) -> String {
         Timeframe::Min5 => "5m".to_string(),
         Timeframe::Min15 => "15m".to_string(),
         Timeframe::Hour1 => "1h".to_string(),
-        Timeframe::Day => "1d".to_string(),
     }
 }
 
@@ -38,6 +37,15 @@ pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
         &bot.order_type,
     );
     bot.roe = calculate_roe(bot.order_entry_price, price, bot.leverage, &bot.order_type);
+}
+
+pub fn is_timeframe_now(bot: &Bot, minute: usize) -> bool {
+    match bot.timeframe {
+        Timeframe::Min1 => true,
+        Timeframe::Min5 => minute % 5 == 0,
+        Timeframe::Min15 => minute % 15 == 0,
+        Timeframe::Hour1 => minute % 60 == 0,
+    }
 }
 
 pub fn shift_stop_loss(bot: &mut Bot) {

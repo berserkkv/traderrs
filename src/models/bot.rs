@@ -1,3 +1,4 @@
+use crate::binance_connector::BinanceConnector;
 use crate::calculator::{
     calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss,
     calculate_take_profit, calculate_taker_fee,
@@ -8,7 +9,7 @@ use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::models::Order;
 use crate::tools;
 use chrono::{DateTime, FixedOffset, Utc};
-use log::{debug, info};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -175,10 +176,15 @@ impl Bot {
         Ok(())
     }
 
-    pub fn open_position(&mut self, command: &OrderCommand) -> Result<(), Box<dyn Error>> {
+    pub async fn open_position(
+        &mut self,
+        command: &OrderCommand,
+        connector: &BinanceConnector,
+    ) -> Result<(), Box<dyn Error>> {
         self.can_open_position()?;
 
-        let price = 0.0;
+        let price = connector.get_price(&self.symbol).await?;
+
         self.order_type = *command;
         self.order_stop_loss = calculate_stop_loss(price, self.stop_loss_ratio, &self.order_type);
         self.order_take_profit =

@@ -25,7 +25,6 @@ pub enum Timeframe {
     Min5,
     Min15,
     Hour1,
-    Day,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Hash, Eq, PartialEq)]
@@ -42,7 +41,6 @@ impl Timeframe {
             Timeframe::Min5 => "5m",
             Timeframe::Min15 => "15m",
             Timeframe::Hour1 => "1h",
-            Timeframe::Day => "1d",
         }
     }
 }

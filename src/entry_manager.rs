@@ -4,7 +4,7 @@ use crate::models::bot::Bot;
 use crate::models::models::{Candle, ManagerChannel};
 use crate::strategy::strategy;
 
-use crate::tools::wait_until_next_aligned_tick;
+use crate::tools::{is_timeframe_now, wait_until_next_aligned_tick};
 use chrono::{DateTime, FixedOffset, Local, Timelike};
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, error, info};
@@ -93,9 +93,14 @@ impl EntryManager {
             self.update_candles(minute, &mut candles_map).await;
 
             for bot in self.bots.iter_mut() {
-                if bot.is_not_active || bot.in_pos || bot.capital < 85.0 {
+                if bot.is_not_active || bot.capital < 85.0 || !is_timeframe_now(&bot, minute) {
                     continue;
                 }
+
+                if bot.in_pos {
+                    continue;
+                }
+
                 bot.last_scanned = now;
 
                 let c = match candles_map.get(&bot.group) {
@@ -111,7 +116,7 @@ impl EntryManager {
 
                 match command {
                     OrderCommand::Long | OrderCommand::Short => {
-                        if bot.open_position(&command).is_ok() {
+                        if bot.open_position(&command, &self.connector).await.is_ok() {
                             opened_bots.push(bot.clone());
                         }
                     }

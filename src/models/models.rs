@@ -1,6 +1,7 @@
 use crate::enums::{OrderCommand, Symbol};
 use crate::models::bot::Bot;
 use chrono::{DateTime, FixedOffset, Utc};
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::sync::RwLock;
 
@@ -79,4 +80,10 @@ fn cmp_f64(a: &f64, b: &f64) -> Ordering {
         (false, true) => Ordering::Less,
         (false, false) => a.partial_cmp(b).unwrap(),
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SystemInfo {
+    pub(crate) cpu_usage: f32,
+    pub(crate) memory_usage: u64,
 }

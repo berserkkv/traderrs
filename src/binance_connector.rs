@@ -3,6 +3,7 @@ use crate::models::models::Candle;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::Value;
+use std::error::Error;
 
 #[derive(Deserialize)]
 struct PriceResponse {
@@ -23,7 +24,7 @@ impl BinanceConnector {
         }
     }
 
-    pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn std::error::Error>> {
+    pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn Error>> {
         let url = format!(
             "https://fapi.binance.com/fapi/v2/ticker/price?symbol={}",
             symbol.to_string()
@@ -36,10 +37,26 @@ impl BinanceConnector {
         Ok(price)
     }
 
-    pub async fn get_candles(&self, symbol: Symbol, timeframe: Timeframe, limit: i32) -> Result<Vec<Candle>, Box<dyn std::error::Error>> {
-        let url = format!("https://fapi.binance.com/fapi/v1/klines?symbol={}&interval={}&limit={}", symbol.to_string(), timeframe.to_string(), limit);
+    pub async fn get_candles(
+        &self,
+        symbol: Symbol,
+        timeframe: Timeframe,
+        limit: i32,
+    ) -> Result<Vec<Candle>, Box<dyn std::error::Error>> {
+        let url = format!(
+            "https://fapi.binance.com/fapi/v1/klines?symbol={}&interval={}&limit={}",
+            symbol.to_string(),
+            timeframe.to_string(),
+            limit
+        );
 
-        let res = self.client.get(&url).send().await?.json::<Vec<Value>>().await?;
+        let res = self
+            .client
+            .get(&url)
+            .send()
+            .await?
+            .json::<Vec<Value>>()
+            .await?;
 
         let mut candles: Vec<Candle> = Vec::new();
 
@@ -60,7 +77,7 @@ impl BinanceConnector {
                 volume,
             })
         }
-        
+
         Ok(candles)
     }
 }

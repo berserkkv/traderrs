@@ -12,11 +12,11 @@ mod tools;
 
 use crate::binance_connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
-use crate::enums::Symbol::SolUsdt;
-use crate::enums::Timeframe::Min1;
+use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
+use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::ManagerChannel;
+use crate::models::models::{ManagerChannel, SystemInfo};
 use crate::position_manager::PositionManager;
 use axum::extract::{Path, Query};
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
@@ -86,16 +86,7 @@ impl Assets {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    // let mut sys = System::new_all();
-    //
-    // for (i, cpu) in sys.cpus().iter().enumerate() {
-    //     println!("{} - {:?}", i + 1, cpu.cpu_usage());
-    // }
-    //
-    // let total = sys.total_memory();
-    // let used_memory = sys.used_memory();
-    // let used = used_memory * 100 / total;
-    // println!("{}", used);
+    get_system_usage().await;
 
     #[cfg(debug_assertions)]
     init_logger();
@@ -124,6 +115,7 @@ async fn main() {
 
     let app = assets_router
         .route("/api/v1/bots", get(get_all_bot))
+        .route("/api/v1/system", get(get_system_usage))
         .layer(Extension(ch))
         .layer(Extension(for_threads))
         .layer(Extension(from_threads))
@@ -137,6 +129,23 @@ async fn main() {
 
 async fn get_all_bot(Extension(ch): Extension<Arc<ManagerChannel>>) -> Json<Vec<Bot>> {
     Json(ch.get_bots())
+}
+
+async fn get_system_usage() -> Json<SystemInfo> {
+    let sys = System::new_all();
+    let mut cpu_usage: f32 = 0.0;
+
+    for (i, cpu) in sys.cpus().iter().enumerate() {
+        cpu_usage += cpu.cpu_usage();
+    }
+
+    let total = sys.total_memory();
+    let used_memory = sys.used_memory();
+    let memory_usage = used_memory * 100 / total;
+    Json(SystemInfo {
+        cpu_usage,
+        memory_usage,
+    })
 }
 
 fn init_dependencies() -> (Arc<ManagerChannel>, Receiver<Vec<Bot>>, Sender<Vec<Bot>>) {
@@ -186,9 +195,9 @@ fn init_bots() -> Vec<Bot> {
     let stop_loss_ratio = 0.4;
     let trailing_stop_activation_point = 0.1;
 
-    let tf = [Min1];
+    let tf = [Min1, Min5, Min15];
     let st = ["EmaMacd", "EmaMacd2"];
-    let smb = [SolUsdt];
+    let smb = [SolUsdt, BtcUsdt, EthUsdt, BnbUsdt];
 
     for t in tf.iter() {
         for s in st.iter() {
