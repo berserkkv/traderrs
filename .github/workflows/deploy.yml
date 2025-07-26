@@ -42,7 +42,7 @@ jobs:
             sudo systemctl stop $SERVICE_NAME || true
             sudo systemctl disable $SERVICE_NAME || true
             sudo rm -f $REMOTE_PATH
-          EOFi
+          EOF
 
       - name: Upload binary to /tmp
         run: |
