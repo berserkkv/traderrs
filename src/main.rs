@@ -1,4 +1,3 @@
-mod api;
 mod binance_connector;
 mod calculator;
 mod entry_manager;
@@ -18,7 +17,6 @@ use crate::logger::init_logger;
 use crate::models::bot::Bot;
 use crate::models::models::{ManagerChannel, SystemInfo};
 use crate::position_manager::PositionManager;
-use axum::extract::{Path, Query};
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use crossbeam::channel;
 use crossbeam::channel::{Receiver, Sender};
@@ -28,7 +26,6 @@ use rust_embed::RustEmbed;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::net::TcpListener;
-use tokio::sync::Mutex;
 use tower_http::cors::{Any, CorsLayer};
 
 #[derive(RustEmbed)]
@@ -133,7 +130,7 @@ async fn get_system_usage() -> Json<SystemInfo> {
     let sys = System::new_all();
     let mut cpu_usage: f32 = 0.0;
 
-    for (i, cpu) in sys.cpus().iter().enumerate() {
+    for (_, cpu) in sys.cpus().iter().enumerate() {
         cpu_usage += cpu.cpu_usage();
     }
 

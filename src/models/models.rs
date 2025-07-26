@@ -5,14 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::sync::RwLock;
 
-pub trait Strategy {
-    fn name(&self) -> &str;
-}
-
-pub trait Connector {
-    fn get_price(&self, symbol: &Symbol) -> f64;
-}
-
 #[derive(Debug)]
 pub struct Candle {
     pub close: f64,
@@ -64,8 +56,8 @@ impl ManagerChannel {
             a.is_not_active
                 .cmp(&b.is_not_active)
                 .then(cmp_f64(
-                    &(a.capital + a.order_capital),
                     &(b.capital + b.order_capital),
+                    &(a.capital + a.order_capital),
                 ))
                 .then(a.timeframe.cmp(&b.timeframe))
         });

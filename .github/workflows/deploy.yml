@@ -1,0 +1,66 @@
+name: Deploy traderrs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      REMOTE_USER: n
+      REMOTE_HOST: 193.180.208.245
+      REMOTE_PATH: /home/n/traderrs
+      SERVICE_NAME: traderrs.service
+      SERVICE_REMOTE_PATH: /etc/systemd/system/traderrs.service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Build release
+        run: |
+          cargo build --release
+          strip target/release/traderrs
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Stop and disable old service
+        run: |
+          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+            sudo systemctl stop $SERVICE_NAME || true
+            sudo systemctl disable $SERVICE_NAME || true
+            sudo rm -f $REMOTE_PATH
+          EOF
+
+      - name: Upload binary to /tmp
+        run: |
+          scp -o StrictHostKeyChecking=no target/release/traderrs $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs
+
+      - name: Upload service file to /tmp
+        run: |
+          scp -o StrictHostKeyChecking=no traderrs.service $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs.service
+
+      - name: Move binary and service, enable and start service
+        run: |
+          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+            sudo mv /tmp/traderrs $REMOTE_PATH
+            sudo chmod +x $REMOTE_PATH
+            sudo mv /tmp/traderrs.service $SERVICE_REMOTE_PATH
+            sudo chmod 644 $SERVICE_REMOTE_PATH
+            sudo systemctl daemon-reload
+            sudo systemctl enable $SERVICE_NAME
+            sudo systemctl restart $SERVICE_NAME
+            sudo systemctl status $SERVICE_NAME --no-pager
+          EOF

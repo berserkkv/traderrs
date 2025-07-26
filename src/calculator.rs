@@ -1,5 +1,4 @@
 use crate::enums::OrderCommand;
-use log::debug;
 
 pub fn calculate_stop_loss(price: f64, stop_loss_pct: f64, order_type: &OrderCommand) -> f64 {
     match order_type {

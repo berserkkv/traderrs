@@ -20,7 +20,6 @@ pub fn format_timeframe(timeframe: &Timeframe) -> String {
         Timeframe::Hour1 => "1h".to_string(),
     }
 }
-
 pub fn should_close_position(price: f64, bot: &Bot) -> bool {
     match bot.order_type {
         OrderCommand::Long => price <= bot.order_stop_loss || price >= bot.order_take_profit,
@@ -28,7 +27,6 @@ pub fn should_close_position(price: f64, bot: &Bot) -> bool {
         _ => false,
     }
 }
-
 pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
     bot.pnl = calculate_pnl(
         price,
@@ -38,7 +36,6 @@ pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
     );
     bot.roe = calculate_roe(bot.order_entry_price, price, bot.leverage, &bot.order_type);
 }
-
 pub fn is_timeframe_now(bot: &Bot, minute: usize) -> bool {
     match bot.timeframe {
         Timeframe::Min1 => true,
@@ -47,7 +44,6 @@ pub fn is_timeframe_now(bot: &Bot, minute: usize) -> bool {
         Timeframe::Hour1 => minute % 60 == 0,
     }
 }
-
 pub fn shift_stop_loss(bot: &mut Bot) {
     if bot.is_trailing_stop_active {
         return;
@@ -65,7 +61,7 @@ pub fn shift_stop_loss(bot: &mut Bot) {
     if real_roe < bot.trailing_stop_activation_point {
         shift = 0.0;
     }
-    let mut new_stop_loss: f64;
+    let new_stop_loss: f64;
     if bot.order_type == OrderCommand::Long {
         new_stop_loss = bot.order_entry_price * (1.0 + shift);
         if new_stop_loss > bot.order_stop_loss {
@@ -80,7 +76,6 @@ pub fn shift_stop_loss(bot: &mut Bot) {
         }
     }
 }
-
 pub async fn wait_until_next_aligned_tick(interval: Duration) {
     use std::time::SystemTime;
 
