@@ -45,7 +45,7 @@ pub fn is_timeframe_now(bot: &Bot, minute: usize) -> bool {
     }
 }
 pub fn shift_stop_loss(bot: &mut Bot) {
-    if bot.is_trailing_stop_active {
+    if !bot.is_trailing_stop_active {
         return;
     }
 
