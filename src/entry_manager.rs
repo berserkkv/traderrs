@@ -1,59 +1,36 @@
 use crate::binance_connector::BinanceConnector;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
-use crate::models::models::{Candle, ManagerChannel};
+use crate::models::models::Candle;
 use crate::strategy::strategy;
 
 use crate::tools::{is_timeframe_now, wait_until_next_aligned_tick};
 use chrono::{DateTime, FixedOffset, Local, Timelike};
-use crossbeam::channel::{Receiver, Sender};
 use log::{debug, error, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::RwLock;
 
 #[derive(Debug)]
 pub struct EntryManager {
-    bots: Vec<Bot>,
-
+    bots: Arc<RwLock<Vec<Bot>>>,
     bots_data: HashMap<Timeframe, HashMap<Symbol, ()>>,
     connector: BinanceConnector,
     smallest_timeframe: u64,
-    channel: Arc<ManagerChannel>,
-    from_position_manager: Receiver<Vec<Bot>>,
-    for_position_manager: Sender<Vec<Bot>>,
-    for_main: Sender<Vec<Bot>>,
-    from_main: Receiver<Vec<Bot>>,
 }
 
 impl EntryManager {
-    pub fn new(
-        bots: Vec<Bot>,
-        connector: BinanceConnector,
-        channel: Arc<ManagerChannel>,
-        from_position_manager: Receiver<Vec<Bot>>,
-        for_position_manager: Sender<Vec<Bot>>,
-        for_main: Sender<Vec<Bot>>,
-        from_main: Receiver<Vec<Bot>>,
-    ) -> Self {
+    pub fn new(bots: Arc<RwLock<Vec<Bot>>>, connector: BinanceConnector) -> Self {
         Self {
             bots,
             bots_data: HashMap::new(),
             connector,
             smallest_timeframe: 60,
-            channel,
-            from_position_manager,
-            for_position_manager,
-            for_main,
-            from_main,
         }
     }
 
     pub async fn start(&mut self) {
-        debug!(
-            "Starting Entry Manager, with total {} bots",
-            self.bots.len()
-        );
         let mut now: DateTime<FixedOffset>;
         let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
 
@@ -62,42 +39,33 @@ impl EntryManager {
         let mut strategy_info: String;
 
         let mut candles_map: HashMap<String, Vec<Candle>>;
-        let mut opened_bots: Vec<Bot>;
 
-        for bot in self.bots.iter() {
+        for bot in self.bots.read().await.iter() {
             info!("Bot: {:?}", bot.name);
-        }
 
-        for b in self.bots.iter() {
             self.bots_data
-                .entry(b.timeframe)
+                .entry(bot.timeframe)
                 .or_insert(HashMap::new())
-                .insert(b.symbol, ());
+                .insert(bot.symbol, ());
         }
 
-        self.send_to_main();
         wait_until_next_aligned_tick(Duration::from_secs(self.smallest_timeframe)).await;
         tokio::time::sleep(Duration::from_secs(3)).await;
 
         loop {
-            if let Ok(mut bots) = self.from_position_manager.try_recv() {
-                self.bots.append(&mut bots);
-            }
-
             //init
-            opened_bots = Vec::with_capacity(self.bots.len());
-            candles_map = HashMap::with_capacity(self.bots.len());
+            candles_map = HashMap::with_capacity(self.bots.read().await.len());
             now = Local::now().with_timezone(&offset);
             minute = now.minute() as usize;
 
             self.update_candles(minute, &mut candles_map).await;
 
-            for bot in self.bots.iter_mut() {
-                if bot.is_not_active || bot.capital < 85.0 || !is_timeframe_now(&bot, minute) {
-                    continue;
-                }
-
-                if bot.in_pos {
+            for bot in self.bots.write().await.iter_mut() {
+                if bot.is_not_active
+                    || bot.capital < 85.0
+                    || !is_timeframe_now(&bot, minute)
+                    || bot.in_pos
+                {
                     continue;
                 }
 
@@ -116,9 +84,7 @@ impl EntryManager {
 
                 match command {
                     OrderCommand::Long | OrderCommand::Short => {
-                        if bot.open_position(&command, &self.connector).await.is_ok() {
-                            opened_bots.push(bot.clone());
-                        }
+                        if bot.open_position(&command, &self.connector).await.is_ok() {}
                     }
                     _ => {
                         bot.log = strategy_info.clone();
@@ -126,17 +92,7 @@ impl EntryManager {
                 }
             }
 
-            if !opened_bots.is_empty() {
-                if self.for_position_manager.send(opened_bots).is_ok() {
-                    self.bots.retain(|b| !b.in_pos);
-                } else {
-                    error!("Failed to send opened bots through channel");
-                }
-            }
-
             candles_map.clear();
-
-            self.send_to_main();
 
             debug!("Waiting for next tick...");
             wait_until_next_aligned_tick(Duration::from_secs(self.smallest_timeframe)).await;
@@ -174,11 +130,5 @@ impl EntryManager {
                 }
             }
         }
-    }
-
-    fn send_to_main(&mut self) {
-        let v = &mut self.channel.from_entry_manager.write().unwrap();
-        v.clear();
-        v.append(&mut self.bots.clone());
     }
 }

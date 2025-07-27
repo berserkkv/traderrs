@@ -3,6 +3,7 @@ use crate::enums::{OrderCommand, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::Candle;
 use log::debug;
+use std::cmp::Ordering;
 use std::time::Duration;
 
 pub fn get_close_prices(candles: &[Candle]) -> Vec<f64> {
@@ -91,4 +92,26 @@ pub async fn wait_until_next_aligned_tick(interval: Duration) {
 
     let wait_duration = Duration::from_nanos(wait_ns as u64);
     tokio::time::sleep(wait_duration).await;
+}
+
+pub fn sort_bots(bots: &mut Vec<Bot>) -> &mut Vec<Bot> {
+    bots.sort_by(|a, b| {
+        a.is_not_active
+            .cmp(&b.is_not_active)
+            .then(cmp_f64(
+                &(b.capital + b.order_capital),
+                &(a.capital + a.order_capital),
+            ))
+            .then(a.timeframe.cmp(&b.timeframe))
+    });
+    bots
+}
+
+fn cmp_f64(a: &f64, b: &f64) -> Ordering {
+    match (a.is_nan(), b.is_nan()) {
+        (true, true) => Ordering::Equal,
+        (true, false) => Ordering::Greater,
+        (false, true) => Ordering::Less,
+        (false, false) => a.partial_cmp(b).unwrap(),
+    }
 }

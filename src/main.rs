@@ -15,17 +15,16 @@ use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{ManagerChannel, SystemInfo};
+use crate::models::models::SystemInfo;
 use crate::position_manager::PositionManager;
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
-use crossbeam::channel;
-use crossbeam::channel::{Receiver, Sender};
 use log::info;
 use mime_guess::MimeGuess;
 use rust_embed::RustEmbed;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::net::TcpListener;
+use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
 
 #[derive(RustEmbed)]
@@ -86,7 +85,7 @@ async fn main() {
     #[cfg(debug_assertions)]
     init_logger();
 
-    let (ch, from_threads, for_threads) = init_dependencies();
+    let bots = init_dependencies();
 
     // Static assets router
     let assets_router = Assets::router();
@@ -111,9 +110,7 @@ async fn main() {
     let app = assets_router
         .route("/api/v1/bots", get(get_all_bot))
         .route("/api/v1/system", get(get_system_usage))
-        .layer(Extension(ch))
-        .layer(Extension(for_threads))
-        .layer(Extension(from_threads))
+        .layer(Extension(bots))
         .layer(cors)
         .fallback(fallback);
 
@@ -122,8 +119,10 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_all_bot(Extension(ch): Extension<Arc<ManagerChannel>>) -> Json<Vec<Bot>> {
-    Json(ch.get_bots())
+async fn get_all_bot(Extension(bots): Extension<Arc<RwLock<Vec<Bot>>>>) -> Json<Vec<Bot>> {
+    let mut bots = bots.read().await.clone();
+    tools::sort_bots(&mut bots);
+    Json(bots)
 }
 
 async fn get_system_usage() -> Json<SystemInfo> {
@@ -143,33 +142,12 @@ async fn get_system_usage() -> Json<SystemInfo> {
     })
 }
 
-fn init_dependencies() -> (Arc<ManagerChannel>, Receiver<Vec<Bot>>, Sender<Vec<Bot>>) {
-    let (for_entry_manager, from_position_manager) = channel::unbounded::<Vec<Bot>>();
-    let (for_position_manager, from_entry_manager) = channel::unbounded::<Vec<Bot>>();
-    let (for_main, from_main) = channel::unbounded::<Vec<Bot>>();
-
-    let bots = init_bots();
-
-    let channel = Arc::new(ManagerChannel::new());
+fn init_dependencies() -> Arc<RwLock<Vec<Bot>>> {
+    let bots = Arc::new(RwLock::new(init_bots()));
 
     let connector = BinanceConnector::new();
-    let mut position_manager = PositionManager::new(
-        connector.clone(),
-        Arc::clone(&channel),
-        from_entry_manager,
-        for_entry_manager,
-        for_main.clone(),
-        from_main.clone(),
-    );
-    let mut entry_manager = EntryManager::new(
-        bots,
-        connector,
-        Arc::clone(&channel),
-        from_position_manager,
-        for_position_manager,
-        for_main.clone(),
-        from_main.clone(),
-    );
+    let mut position_manager = PositionManager::new(Arc::clone(&bots), connector.clone());
+    let mut entry_manager = EntryManager::new(Arc::clone(&bots), connector);
 
     tokio::spawn(async move {
         position_manager.start().await;
@@ -179,7 +157,7 @@ fn init_dependencies() -> (Arc<ManagerChannel>, Receiver<Vec<Bot>>, Sender<Vec<B
         entry_manager.start().await;
     });
 
-    (channel, from_main, for_main)
+    bots
 }
 
 fn init_bots() -> Vec<Bot> {

@@ -1,9 +1,6 @@
 use crate::enums::{OrderCommand, Symbol};
-use crate::models::bot::Bot;
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
-use std::sync::RwLock;
 
 #[derive(Debug)]
 pub struct Candle {
@@ -29,49 +26,6 @@ pub struct Order {
     pub closed_at: DateTime<FixedOffset>,
     pub fee: f64,
     pub leverage: f64,
-}
-
-#[derive(Debug)]
-pub struct ManagerChannel {
-    pub from_entry_manager: RwLock<Vec<Bot>>,
-    pub from_position_manager: RwLock<Vec<Bot>>,
-    pub orders: RwLock<Vec<Order>>,
-}
-
-impl ManagerChannel {
-    pub fn new() -> Self {
-        Self {
-            from_entry_manager: RwLock::new(Vec::new()),
-            from_position_manager: RwLock::new(Vec::new()),
-            orders: RwLock::new(Vec::new()),
-        }
-    }
-
-    pub fn get_bots(&self) -> Vec<Bot> {
-        let mut bots = Vec::new();
-        bots.append(&mut self.from_position_manager.read().unwrap().clone());
-        bots.append(&mut self.from_entry_manager.read().unwrap().clone());
-
-        bots.sort_by(|a, b| {
-            a.is_not_active
-                .cmp(&b.is_not_active)
-                .then(cmp_f64(
-                    &(b.capital + b.order_capital),
-                    &(a.capital + a.order_capital),
-                ))
-                .then(a.timeframe.cmp(&b.timeframe))
-        });
-        bots
-    }
-}
-
-fn cmp_f64(a: &f64, b: &f64) -> Ordering {
-    match (a.is_nan(), b.is_nan()) {
-        (true, true) => Ordering::Equal,
-        (true, false) => Ordering::Greater,
-        (false, true) => Ordering::Less,
-        (false, false) => a.partial_cmp(b).unwrap(),
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -1,63 +1,40 @@
 use crate::binance_connector::BinanceConnector;
 use crate::enums::Symbol;
 use crate::models::bot::Bot;
-use crate::models::models::{ManagerChannel, Order};
+use crate::models::models::Order;
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
 use chrono::{DateTime, FixedOffset, Utc};
-use crossbeam::channel::{Receiver, Sender};
-use log::{debug, error, info};
+use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 #[derive(Debug)]
 pub struct PositionManager {
-    bots: Vec<Bot>,
+    bots: Arc<RwLock<Vec<Bot>>>,
     connector: BinanceConnector,
-    channel: Arc<ManagerChannel>,
-    from_entry_manager: Receiver<Vec<Bot>>,
-    for_entry_manager: Sender<Vec<Bot>>,
-    for_main: Sender<Vec<Bot>>,
-    from_main: Receiver<Vec<Bot>>,
 }
 
 impl PositionManager {
-    pub fn new(
-        connector: BinanceConnector,
-        channel: Arc<ManagerChannel>,
-        from_entry_manager: Receiver<Vec<Bot>>,
-        for_entry_manager: Sender<Vec<Bot>>,
-        for_main: Sender<Vec<Bot>>,
-        from_main: Receiver<Vec<Bot>>,
-    ) -> Self {
-        Self {
-            bots: Vec::new(),
-            connector,
-            channel,
-            from_entry_manager,
-            for_entry_manager,
-            for_main,
-            from_main,
-        }
+    pub fn new(bots: Arc<RwLock<Vec<Bot>>>, connector: BinanceConnector) -> Self {
+        Self { bots, connector }
     }
 
     pub async fn start(&mut self) {
         debug!("Starting Position Manager...");
         let sleeping_time = 2000;
-        let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(self.bots.len());
-        let mut to_close: Vec<Order> = Vec::with_capacity(self.bots.len());
+        let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(self.bots.read().await.len());
+        let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
         let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
         let mut now: DateTime<FixedOffset>;
         loop {
-            self.get_from_channel().await;
-            if self.bots.is_empty() {
-                tokio::time::sleep(std::time::Duration::from_millis(sleeping_time)).await;
-                continue;
-            }
             now = Utc::now().with_timezone(&offset);
 
-            for b in self.bots.iter() {
+            for b in self.bots.read().await.iter() {
                 debug!("scanning position {}", b.name);
+                if !b.in_pos {
+                    continue;
+                }
                 if !prices.contains_key(&b.symbol) {
                     match self.connector.get_price(&b.symbol).await {
                         Ok(price) => {
@@ -71,7 +48,12 @@ impl PositionManager {
                 }
             }
 
-            for bot in self.bots.iter_mut() {
+            if prices.is_empty() {
+                tokio::time::sleep(std::time::Duration::from_millis(sleeping_time)).await;
+                continue;
+            }
+
+            for bot in self.bots.write().await.iter_mut() {
                 if !bot.in_pos {
                     continue;
                 }
@@ -90,7 +72,6 @@ impl PositionManager {
             }
 
             self.handle_closed_position(&mut to_close).await;
-            self.send_to_main().await;
             prices.clear();
             to_close.clear();
             tokio::time::sleep(std::time::Duration::from_millis(sleeping_time)).await;
@@ -102,36 +83,6 @@ impl PositionManager {
             return;
         }
 
-        let mut closed_bots = Vec::with_capacity(orders.len());
-
-        self.bots.retain(|b| {
-            if b.in_pos {
-                true
-            } else {
-                closed_bots.push(b.clone());
-                false
-            }
-        });
-
-        if !closed_bots.is_empty() {
-            if !self.for_entry_manager.send(closed_bots).is_ok() {
-                error!("Failed to send closed bots");
-            }
-        }
-
-        let mut o = self.channel.orders.write().unwrap();
-        o.append(orders);
-    }
-
-    async fn get_from_channel(&mut self) {
-        if let Ok(mut bots) = self.from_entry_manager.try_recv() {
-            self.bots.append(&mut bots);
-        }
-    }
-
-    async fn send_to_main(&mut self) {
-        let v = &mut self.channel.from_position_manager.write().unwrap();
-        v.clear();
-        v.append(&mut self.bots.clone());
+        // todo push orders to vec
     }
 }
