@@ -12,12 +12,21 @@ use tokio::sync::RwLock;
 #[derive(Debug)]
 pub struct PositionManager {
     bots: Arc<RwLock<Vec<Bot>>>,
+    orders: Arc<RwLock<HashMap<i64, Vec<Order>>>>,
     connector: BinanceConnector,
 }
 
 impl PositionManager {
-    pub fn new(bots: Arc<RwLock<Vec<Bot>>>, connector: BinanceConnector) -> Self {
-        Self { bots, connector }
+    pub fn new(
+        bots: Arc<RwLock<Vec<Bot>>>,
+        connector: BinanceConnector,
+        orders: Arc<RwLock<HashMap<i64, Vec<Order>>>>,
+    ) -> Self {
+        Self {
+            bots,
+            connector,
+            orders,
+        }
     }
 
     pub async fn start(&mut self) {
@@ -82,7 +91,13 @@ impl PositionManager {
         if orders.is_empty() {
             return;
         }
+        let mut orders_map = self.orders.write().await;
 
-        // todo push orders to vec
+        for o in orders.iter_mut() {
+            orders_map
+                .entry(o.bot_id)
+                .or_insert(Vec::new())
+                .push(o.clone());
+        }
     }
 }

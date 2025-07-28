@@ -12,7 +12,7 @@ pub struct Candle {
     pub volume: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Order {
     pub symbol: Symbol,
     pub order_type: OrderCommand,

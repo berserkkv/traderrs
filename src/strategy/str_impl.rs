@@ -2,7 +2,6 @@ use crate::enums::OrderCommand;
 use crate::models::models::Candle;
 use crate::strategy::strategy::Strategy;
 use crate::{ta, tools};
-use log::{debug, info};
 
 pub struct EmaMacd {}
 impl Strategy for EmaMacd {
@@ -52,14 +51,14 @@ impl Strategy for EmaMacd2 {
         }
 
         let closes = tools::get_close_prices(candles);
-        let (macd_line, signal_line, histogram) = ta::macd_slice(&closes);
+        let (macd_line, signal_line, _) = ta::macd_slice(&closes);
         let ema200 = ta::ema(&closes, 200);
 
         let n = macd_line.len();
         let macd = macd_line[n - 1];
         let macd_prev = macd_line[n - 2];
         let signal = signal_line[n - 1];
-        let siganl_prev = signal_line[n - 2];
+        let signal_prev = signal_line[n - 2];
         let price = closes[n - 1];
 
         let info = format!(
@@ -67,9 +66,9 @@ impl Strategy for EmaMacd2 {
             price, macd, signal, ema200
         );
 
-        if macd_prev < siganl_prev && macd > signal && price > ema200 {
+        if macd_prev < signal_prev && macd > signal && price > ema200 {
             (OrderCommand::Long, info)
-        } else if macd_prev > siganl_prev && macd < signal && price < ema200 {
+        } else if macd_prev > signal_prev && macd < signal && price < ema200 {
             (OrderCommand::Short, info)
         } else {
             (OrderCommand::Wait, info)

@@ -12,15 +12,17 @@ mod tools;
 use crate::binance_connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
 use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
-use crate::enums::Timeframe::{Min1, Min15, Min5};
+use crate::enums::Timeframe::{Min1, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::SystemInfo;
+use crate::models::models::{Order, SystemInfo};
 use crate::position_manager::PositionManager;
+use axum::extract::Path;
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use log::info;
 use mime_guess::MimeGuess;
 use rust_embed::RustEmbed;
+use std::collections::HashMap;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::net::TcpListener;
@@ -85,7 +87,7 @@ async fn main() {
     #[cfg(debug_assertions)]
     init_logger();
 
-    let bots = init_dependencies();
+    let (bots, order_map) = init_dependencies();
 
     // Static assets router
     let assets_router = Assets::router();
@@ -109,13 +111,15 @@ async fn main() {
 
     let app = assets_router
         .route("/api/v1/bots", get(get_all_bot))
+        .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
         .route("/api/v1/system", get(get_system_usage))
         .layer(Extension(bots))
+        .layer(Extension(order_map))
         .layer(cors)
         .fallback(fallback);
 
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
-    info!("listening on http://{}", listener.local_addr().unwrap());
+    info!("listening on https://{}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -123,6 +127,20 @@ async fn get_all_bot(Extension(bots): Extension<Arc<RwLock<Vec<Bot>>>>) -> Json<
     let mut bots = bots.read().await.clone();
     tools::sort_bots(&mut bots);
     Json(bots)
+}
+
+async fn get_orders_by_id(
+    Path(id): Path<i64>,
+    Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>,
+) -> Json<Vec<Order>> {
+    Json(
+        order_map
+            .read()
+            .await
+            .get(&id)
+            .cloned()
+            .unwrap_or(Vec::new()),
+    )
 }
 
 async fn get_system_usage() -> Json<SystemInfo> {
@@ -142,11 +160,16 @@ async fn get_system_usage() -> Json<SystemInfo> {
     })
 }
 
-fn init_dependencies() -> Arc<RwLock<Vec<Bot>>> {
+fn init_dependencies() -> (Arc<RwLock<Vec<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>) {
     let bots = Arc::new(RwLock::new(init_bots()));
 
     let connector = BinanceConnector::new();
-    let mut position_manager = PositionManager::new(Arc::clone(&bots), connector.clone());
+    let orders_map: Arc<RwLock<HashMap<i64, Vec<Order>>>> = Arc::new(RwLock::new(HashMap::new()));
+    let mut position_manager = PositionManager::new(
+        Arc::clone(&bots),
+        connector.clone(),
+        Arc::clone(&orders_map),
+    );
     let mut entry_manager = EntryManager::new(Arc::clone(&bots), connector);
 
     tokio::spawn(async move {
@@ -157,7 +180,7 @@ fn init_dependencies() -> Arc<RwLock<Vec<Bot>>> {
         entry_manager.start().await;
     });
 
-    bots
+    (bots, orders_map)
 }
 
 fn init_bots() -> Vec<Bot> {
