@@ -133,14 +133,22 @@ async fn get_orders_by_id(
     Path(id): Path<i64>,
     Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>,
 ) -> Json<Vec<Order>> {
-    Json(
-        order_map
-            .read()
-            .await
-            .get(&id)
-            .cloned()
-            .unwrap_or(Vec::new()),
-    )
+    let mut orders: Vec<Order> = Vec::new();
+
+    for _ in 0..id {
+        orders.push(Order::dummy());
+    }
+
+    Json(orders)
+
+    // Json(
+    //     order_map
+    //         .read()
+    //         .await
+    //         .get(&id)
+    //         .cloned()
+    //         .unwrap_or(Vec::new()),
+    // )
 }
 
 async fn get_system_usage() -> Json<SystemInfo> {
