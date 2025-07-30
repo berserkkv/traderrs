@@ -55,7 +55,7 @@
     {:else if $data && $data.length !== 0}
         <table class="my-table">
             <thead>
-            <tr class="text-neutral-400  text-xs bg-gray-900">
+            <tr class="text-neutral-500  text-xs bg-neutral-900">
                 <th class=""></th>
 
                 <th class="my-cell">Entry Price</th>

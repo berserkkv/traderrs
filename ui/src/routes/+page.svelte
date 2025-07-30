@@ -69,7 +69,7 @@
             <div>
                 <div class="flex justify-between items-start">
                     <div class=" text-sm">
-                        <span class="">{b.name}</span>
+                        <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
                         <span class="ml-1 text-xs">
               <span class="text-indigo-700">{b.wins}</span>/<span
                                 class="text-fuchsia-700">{b.losses}</span
