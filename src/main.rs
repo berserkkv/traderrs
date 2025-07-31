@@ -208,7 +208,7 @@ fn init_bots() -> Vec<Bot> {
     let stop_loss_ratio = 0.4;
     let trailing_stop_activation_point = 0.1;
 
-    let tf = [Min1, Min5, Min15];
+    let tf = [Min1, Min5];
     let st = ["EmaMacd", "EmaMacd2"];
     let smb = [SolUsdt, BtcUsdt, EthUsdt, BnbUsdt];
 
