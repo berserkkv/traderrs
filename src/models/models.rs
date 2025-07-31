@@ -51,4 +51,5 @@ impl Order {
 pub struct SystemInfo {
     pub(crate) cpu_usage: f32,
     pub(crate) memory_usage: u64,
+    pub started_time: DateTime<FixedOffset>,
 }

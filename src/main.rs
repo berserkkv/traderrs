@@ -19,6 +19,7 @@ use crate::models::models::{Order, SystemInfo};
 use crate::position_manager::PositionManager;
 use axum::extract::Path;
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
+use chrono::{DateTime, FixedOffset, Utc};
 use log::info;
 use mime_guess::MimeGuess;
 use rust_embed::RustEmbed;
@@ -87,6 +88,9 @@ async fn main() {
     #[cfg(debug_assertions)]
     init_logger();
 
+    let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+    let started_time = Utc::now().with_timezone(&offset);
+
     let (bots, order_map) = init_dependencies();
 
     // Static assets router
@@ -115,6 +119,7 @@ async fn main() {
         .route("/api/v1/system", get(get_system_usage))
         .layer(Extension(bots))
         .layer(Extension(order_map))
+        .layer(Extension(started_time))
         .layer(cors)
         .fallback(fallback);
 
@@ -152,7 +157,9 @@ async fn get_orders_by_id(
     Json(orders)
 }
 
-async fn get_system_usage() -> Json<SystemInfo> {
+async fn get_system_usage(
+    Extension(started_time): Extension<DateTime<FixedOffset>>,
+) -> Json<SystemInfo> {
     let sys = System::new_all();
     let mut cpu_usage: f32 = 0.0;
 
@@ -166,6 +173,7 @@ async fn get_system_usage() -> Json<SystemInfo> {
     Json(SystemInfo {
         cpu_usage,
         memory_usage,
+        started_time,
     })
 }
 
