@@ -1,5 +1,6 @@
 <script lang="ts">
     import System from "$lib/component/System.svelte";
+    import {textUpOrDown} from "$lib/tools.js";
 
     export let data: {
         bots: {
@@ -69,10 +70,10 @@
             <div>
                 <div class="flex justify-between items-start">
                     <div class=" text-sm">
-                        <span class="">{b.name}</span>
+                        <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
                         <span class="ml-1 text-xs">
-              <span class="text-indigo-700">{b.wins}</span>/<span
-                                class="text-fuchsia-700">{b.losses}</span
+              <span class="{textUpOrDown(1)}">{b.wins}</span>/<span
+                                class="{textUpOrDown(-1)}">{b.losses}</span
                         >
             </span>
                         <div class="text-neutral-600 text-tight">{b.log}</div>
@@ -101,8 +102,8 @@
             {#if b.in_pos}
                 <div
                         class="border-t-2 my-1 {b.order_type === 'Long'
-            ? 'border-t-indigo-950'
-            : 'border-t-fuchsia-950'}
+            ? textUpOrDown(1)
+            : textUpOrDown(-1)}
                      "
                 ></div>
 
@@ -125,24 +126,11 @@
             >{b.order_take_profit.toFixed(2)}</span
             >
           </span>
-
                     <span class="text-neutral-500">
-            <span
-                    class={b.pnl > 0
-                ? "text-indigo-800"
-                : b.pnl < 0
-                  ? "text-fuchsia-800"
-                  : "text-neutral-500"}
-            >
+            <span class={textUpOrDown(b.pnl)}>
               {b.pnl.toFixed(1)}
             </span>(
-            <span
-                    class={b.roe > 0
-                ? "text-indigo-800"
-                : b.roe < 0
-                  ? "text-fuchsia-800"
-                  : "text-neutral-500"}
-            >
+            <span class={textUpOrDown(b.roe)}>
               {b.roe.toFixed(1)}%
             </span>)
           </span>

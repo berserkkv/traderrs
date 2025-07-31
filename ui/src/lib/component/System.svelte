@@ -2,10 +2,12 @@
     import {onMount} from "svelte";
     import {writable} from "svelte/store";
     import {API_BASE} from "$lib/config";
+    import {parseIsoToDate} from "$lib/tools.js";
 
     type System = {
         cpu_usage: number;
         memory_usage: number;
+        started_time: string;
     }
 
     const data = writable<System | null>(null);
@@ -41,7 +43,7 @@
     {:else if $error}
         <p>Error: {$error}</p>
     {:else if $data}
-        <p>cpu: {$data.cpu_usage}%, mem: {$data.memory_usage}%</p>
+        <p>cpu: {$data.cpu_usage}%, mem: {$data.memory_usage}% | {parseIsoToDate($data.started_time)}</p>
     {/if}
 </div>
 

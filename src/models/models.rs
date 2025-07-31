@@ -12,7 +12,7 @@ pub struct Candle {
     pub volume: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Order {
     pub symbol: Symbol,
     pub order_type: OrderCommand,
@@ -28,8 +28,28 @@ pub struct Order {
     pub leverage: f64,
 }
 
+impl Order {
+    pub fn dummy() -> Self {
+        Self {
+            symbol: Symbol::SolUsdt,
+            order_type: OrderCommand::Long,
+            bot_id: 1,
+            entry_price: 100.0,
+            exit_price: 101.0,
+            quantity: 1.0,
+            pnl: 1.0,
+            roe: 1.0,
+            created_at: DateTime::default(),
+            closed_at: DateTime::default(),
+            fee: 0.1,
+            leverage: 10.0,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SystemInfo {
     pub(crate) cpu_usage: f32,
     pub(crate) memory_usage: u64,
+    pub started_time: DateTime<FixedOffset>,
 }
