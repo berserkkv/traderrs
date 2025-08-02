@@ -138,34 +138,34 @@ async fn get_orders_by_id(
     Path(id): Path<i64>,
     Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>,
 ) -> Json<Vec<Order>> {
-    let mut orders: Vec<Order> = Vec::new();
-
-    for _ in 0..id {
-        orders.push(Order::dummy());
-    }
-
-    let mut x = 0.0;
-
-    for i in 0..orders.len() {
-        if i % 2 == 0 {
-            orders[i].pnl += x;
-            x += 2.0;
-        } else {
-            orders[i].pnl -= x;
-        }
-    }
-
-    Json(orders)
-
-    // let mut orders = order_map
-    //     .read()
-    //     .await
-    //     .get(&id)
-    //     .cloned()
-    //     .unwrap_or(Vec::new());
-    // orders.reverse();
+    // let mut orders: Vec<Order> = Vec::new();
+    //
+    // for _ in 0..id {
+    //     orders.push(Order::dummy());
+    // }
+    //
+    // let mut x = 0.0;
+    //
+    // for i in 0..orders.len() {
+    //     if i % 2 == 0 {
+    //         orders[i].pnl += x;
+    //         x += 2.0;
+    //     } else {
+    //         orders[i].pnl -= x;
+    //     }
+    // }
     //
     // Json(orders)
+
+    let mut orders = order_map
+        .read()
+        .await
+        .get(&id)
+        .cloned()
+        .unwrap_or(Vec::new());
+    orders.reverse();
+
+    Json(orders)
 }
 
 async fn get_system_usage(
