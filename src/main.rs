@@ -209,7 +209,7 @@ fn init_bots() -> Vec<Bot> {
     let trailing_stop_activation_point = 0.1;
 
     let tf = [Min1, Min5, Min15];
-    let st = ["EmaMacd"];
+    let st = ["EmaMacd", "EmaMacd2"];
     let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
 
     for t in tf.iter() {

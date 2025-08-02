@@ -4,7 +4,7 @@ use crate::models::bot::Bot;
 use crate::models::models::Order;
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
 use chrono::{DateTime, FixedOffset, Utc};
-use log::{debug, error};
+use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -68,16 +68,19 @@ impl PositionManager {
                     continue;
                 }
 
-                let cur_price = prices[&bot.symbol];
-
-                if should_close_position(cur_price, bot) {
-                    if let Ok(order) = bot.close_position(cur_price) {
-                        to_close.push(order);
+                if let Some(&cur_price) = prices.get(&bot.symbol) {
+                    if should_close_position(cur_price, bot) {
+                        if let Ok(order) = bot.close_position(cur_price) {
+                            to_close.push(order);
+                        }
+                    } else {
+                        update_pnl_and_roe(bot, cur_price);
+                        shift_stop_loss(bot);
+                        bot.last_scanned = now;
                     }
                 } else {
-                    update_pnl_and_roe(bot, cur_price);
-                    shift_stop_loss(bot);
-                    bot.last_scanned = now;
+                    warn!("Price missing for {:?}", bot.symbol);
+                    bot.log = "Price missing".to_string();
                 }
             }
 
