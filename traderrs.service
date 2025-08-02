@@ -6,11 +6,11 @@ After=network.target
 [Service]
 User=n
 ExecStart=/home/n/traderrs
-Restart=on-failure
+Restart=no
 RestartSec=5
 # Optional: Uncomment if your app needs environment variables or working directory
 # WorkingDirectory=/home/n
-# Environment=RUST_LOG=info
+Environment=RUST_LOG=debug
 
 [Install]
 WantedBy=multi-user.target

@@ -3,6 +3,7 @@
     import {writable} from "svelte/store";
     import {API_BASE} from "$lib/config";
     import {bgUpOrDown, parseIsoToDate, textUpOrDown} from "$lib/tools.js";
+    import Chart from "$lib/component/Chart.svelte";
 
     export let id;
 
@@ -53,6 +54,7 @@
     {:else if $error}
         <p>Error: {$error}</p>
     {:else if $data && $data.length !== 0}
+        <Chart orders={$data}/>
         <table class="my-table">
             <thead>
             <tr class="text-neutral-500  text-xs bg-neutral-900">

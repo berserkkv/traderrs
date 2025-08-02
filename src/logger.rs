@@ -13,7 +13,7 @@ pub fn init_logger() {
     let level = if cfg!(debug_assertions) {
         env::var("RUST_LOG").unwrap_or("info".to_string())
     } else {
-        env::var("RUST_LOG").unwrap_or("off".to_string())
+        env::var("RUST_LOG").unwrap_or("warn".to_string())
     };
 
     builder.parse_filters(&level);

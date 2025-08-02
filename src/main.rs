@@ -12,7 +12,7 @@ mod tools;
 use crate::binance_connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
 use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
-use crate::enums::Timeframe::{Min1, Min5};
+use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
 use crate::models::models::{Order, SystemInfo};
@@ -208,9 +208,9 @@ fn init_bots() -> Vec<Bot> {
     let stop_loss_ratio = 0.4;
     let trailing_stop_activation_point = 0.1;
 
-    let tf = [Min1, Min5];
-    let st = ["EmaMacd", "EmaMacd2"];
-    let smb = [SolUsdt, BtcUsdt, EthUsdt, BnbUsdt];
+    let tf = [Min1, Min5, Min15];
+    let st = ["EmaMacd"];
+    let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
 
     for t in tf.iter() {
         for s in st.iter() {

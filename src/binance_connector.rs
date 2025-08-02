@@ -25,16 +25,17 @@ impl BinanceConnector {
     }
 
     pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn Error>> {
-        let url = format!(
-            "https://fapi.binance.com/fapi/v2/ticker/price?symbol={}",
-            symbol.to_string()
-        );
-
-        let res = self.client.get(&url).send().await?;
-        let price_response: PriceResponse = res.json().await?;
-        let price = price_response.price.parse::<f64>()?;
-
-        Ok(price)
+        Ok(150.0)
+        // let url = format!(
+        //     "https://fapi.binance.com/fapi/v2/ticker/price?symbol={}",
+        //     symbol.to_string()
+        // );
+        //
+        // let res = self.client.get(&url).send().await?;
+        // let price_response: PriceResponse = res.json().await?;
+        // let price = price_response.price.parse::<f64>()?;
+        //
+        // Ok(price)
     }
 
     pub async fn get_candles(

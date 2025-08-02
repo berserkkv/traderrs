@@ -6,7 +6,7 @@ use crate::strategy::strategy;
 
 use crate::tools::{is_timeframe_now, wait_until_next_aligned_tick};
 use chrono::{DateTime, FixedOffset, Local, Timelike};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -75,7 +75,7 @@ impl EntryManager {
                     Some(data) if !data.is_empty() => data,
                     _ => {
                         bot.log = "Problem with connector".to_string();
-                        debug!("Problem with connector, bot: {}", bot.name);
+                        warn!("Problem with connector, bot: {}", bot.name);
                         continue;
                     }
                 };

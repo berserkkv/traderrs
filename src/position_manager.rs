@@ -40,10 +40,11 @@ impl PositionManager {
             now = Utc::now().with_timezone(&offset);
 
             for b in self.bots.read().await.iter() {
-                debug!("scanning position {}", b.name);
                 if !b.in_pos {
                     continue;
                 }
+                debug!("scanning position {}", b.name);
+
                 if !prices.contains_key(&b.symbol) {
                     match self.connector.get_price(&b.symbol).await {
                         Ok(price) => {
