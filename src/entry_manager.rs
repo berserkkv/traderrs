@@ -14,14 +14,14 @@ use tokio::sync::RwLock;
 
 #[derive(Debug)]
 pub struct EntryManager {
-    bots: Arc<RwLock<Vec<Bot>>>,
+    bots: Arc<Vec<RwLock<Bot>>>,
     bots_data: HashMap<Timeframe, HashMap<Symbol, ()>>,
     connector: BinanceConnector,
     smallest_timeframe: u64,
 }
 
 impl EntryManager {
-    pub fn new(bots: Arc<RwLock<Vec<Bot>>>, connector: BinanceConnector) -> Self {
+    pub fn new(bots: Arc<Vec<RwLock<Bot>>>, connector: BinanceConnector) -> Self {
         Self {
             bots,
             bots_data: HashMap::new(),
@@ -37,16 +37,19 @@ impl EntryManager {
         let mut minute: usize;
         let mut command: OrderCommand;
         let mut strategy_info: String;
+        let mut candles_option: Option<&Vec<Candle>>;
+        let mut strategy_name: String;
+        let mut candles: &Vec<Candle>;
 
         let mut candles_map: HashMap<String, Vec<Candle>>;
 
-        for bot in self.bots.read().await.iter() {
-            info!("Bot: {:?}", bot.name);
+        for bot in self.bots.iter() {
+            info!("Bot: {:?}", bot.read().await.name);
 
             self.bots_data
-                .entry(bot.timeframe)
+                .entry(bot.read().await.timeframe)
                 .or_insert(HashMap::new())
-                .insert(bot.symbol, ());
+                .insert(bot.read().await.symbol, ());
         }
 
         wait_until_next_aligned_tick(Duration::from_secs(self.smallest_timeframe)).await;
@@ -54,40 +57,53 @@ impl EntryManager {
 
         loop {
             //init
-            candles_map = HashMap::with_capacity(self.bots.read().await.len());
+            candles_map = HashMap::with_capacity(self.bots.len());
             now = Local::now().with_timezone(&offset);
             minute = now.minute() as usize;
 
             self.update_candles(minute, &mut candles_map).await;
 
-            for bot in self.bots.write().await.iter_mut() {
-                if bot.is_not_active
-                    || bot.capital < 85.0
-                    || !is_timeframe_now(&bot, minute)
-                    || bot.in_pos
+            for bot_lock in self.bots.iter() {
+                //read section
                 {
-                    continue;
+                    let bot_read = bot_lock.read().await;
+                    if bot_read.is_not_active
+                        || bot_read.capital < 85.0
+                        || !is_timeframe_now(&*bot_read, minute)
+                        || bot_read.in_pos
+                    {
+                        continue;
+                    }
+                    candles_option = candles_map.get(&bot_read.group);
+                    strategy_name = bot_read.strategy_name.clone();
                 }
 
-                bot.last_scanned = now;
+                bot_lock.write().await.last_scanned = now;
 
-                let c = match candles_map.get(&bot.group) {
+                candles = match candles_option {
                     Some(data) if !data.is_empty() => data,
                     _ => {
-                        bot.log = "Problem with connector".to_string();
-                        warn!("Problem with connector, bot: {}", bot.name);
+                        warn!("Problem with connector");
+                        bot_lock.write().await.log = "Problem with connector".to_string();
+
                         continue;
                     }
                 };
 
-                (command, strategy_info) = strategy::get_strategy(&bot.strategy_name).run(c);
+                (command, strategy_info) = strategy::get_strategy(&strategy_name).run(candles);
 
                 match command {
                     OrderCommand::Long | OrderCommand::Short => {
-                        if bot.open_position(&command, &self.connector).await.is_ok() {}
+                        if bot_lock
+                            .write()
+                            .await
+                            .open_position(&command, &self.connector)
+                            .await
+                            .is_ok()
+                        {}
                     }
                     _ => {
-                        bot.log = strategy_info.clone();
+                        bot_lock.write().await.log = strategy_info.clone();
                     }
                 }
             }

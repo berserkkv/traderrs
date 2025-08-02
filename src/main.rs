@@ -128,43 +128,46 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_all_bot(Extension(bots): Extension<Arc<RwLock<Vec<Bot>>>>) -> Json<Vec<Bot>> {
-    let mut bots = bots.read().await.clone();
-    tools::sort_bots(&mut bots);
-    Json(bots)
+async fn get_all_bot(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) -> Json<Vec<Bot>> {
+    let mut v = Vec::with_capacity(bots.len());
+    for b in bots.iter() {
+        v.push(b.read().await.clone());
+    }
+    tools::sort_bots(&mut v);
+    Json(v)
 }
 
 async fn get_orders_by_id(
     Path(id): Path<i64>,
     Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>,
 ) -> Json<Vec<Order>> {
-    let mut orders: Vec<Order> = Vec::new();
-
-    for _ in 0..id {
-        orders.push(Order::dummy());
-    }
-
-    let mut x = 1.0;
-
-    for i in 0..orders.len() {
-        if i % 2 == 0 {
-            orders[i].pnl += x;
-        } else {
-            orders[i].pnl -= x / 2.0;
-        }
-    }
-
-    Json(orders)
-
-    // let mut orders = order_map
-    //     .read()
-    //     .await
-    //     .get(&id)
-    //     .cloned()
-    //     .unwrap_or(Vec::new());
-    // orders.reverse();
+    // let mut orders: Vec<Order> = Vec::new();
+    //
+    // for _ in 0..id {
+    //     orders.push(Order::dummy());
+    // }
+    //
+    // let  x = 1.0;
+    //
+    // for i in 0..orders.len() {
+    //     if i % 2 == 0 {
+    //         orders[i].pnl += x;
+    //     } else {
+    //         orders[i].pnl -= x / 2.0;
+    //     }
+    // }
     //
     // Json(orders)
+
+    let mut orders = order_map
+        .read()
+        .await
+        .get(&id)
+        .cloned()
+        .unwrap_or(Vec::new());
+    orders.reverse();
+
+    Json(orders)
 }
 
 async fn get_system_usage(
@@ -187,8 +190,8 @@ async fn get_system_usage(
     })
 }
 
-fn init_dependencies() -> (Arc<RwLock<Vec<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>) {
-    let bots = Arc::new(RwLock::new(init_bots()));
+fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>) {
+    let bots = Arc::new(init_bots());
 
     let connector = BinanceConnector::new();
     let orders_map: Arc<RwLock<HashMap<i64, Vec<Order>>>> = Arc::new(RwLock::new(HashMap::new()));
@@ -210,7 +213,7 @@ fn init_dependencies() -> (Arc<RwLock<Vec<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Or
     (bots, orders_map)
 }
 
-fn init_bots() -> Vec<Bot> {
+fn init_bots() -> Vec<RwLock<Bot>> {
     let mut bots = Vec::new();
     let capital = 100.0;
     let leverage = 10.0;
@@ -235,7 +238,7 @@ fn init_bots() -> Vec<Bot> {
                     stop_loss_ratio,
                     trailing_stop_activation_point,
                 );
-                bots.push(bot);
+                bots.push(RwLock::new(bot));
             }
         }
     }
