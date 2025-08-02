@@ -54,35 +54,40 @@
     {:else if $error}
         <p>Error: {$error}</p>
     {:else if $data && $data.length !== 0}
-        <Chart orders={$data}/>
-        <table class="my-table">
-            <thead>
-            <tr class="text-neutral-500  text-xs bg-neutral-900">
-                <th class=""></th>
+        <div>
+            <div>
+                <Chart orders={$data}/>
+            </div>
+            <div>
+                <table class="my-table">
+                    <thead>
+                    <tr class="text-neutral-500  text-xs bg-neutral-900">
+                        <th class=""></th>
 
-                <th class="my-cell">Entry Price</th>
-                <th class="my-cell">Exit Price</th>
-                <th class="my-cell">Pnl (Roe)</th>
-                <th class="my-cell">Created time</th>
-                <th class="my-cell">Closed time</th>
+                        <th class="my-cell">Entry Price</th>
+                        <th class="my-cell">Exit Price</th>
+                        <th class="my-cell">Pnl (Roe)</th>
+                        <th class="my-cell">Created time</th>
+                        <th class="my-cell">Closed time</th>
 
 
-            </tr>
-            </thead>
-            <tbody>
-            {#each $data as o}
-                <tr>
-                    <td class="border-none p-1 {bgUpOrDown(o.order_type === 'Long' ? 1 : -1)}"></td>
-                    <td class="my-cell">{o.entry_price.toFixed(2)}</td>
-                    <td class="my-cell">{o.exit_price.toFixed(2)}</td>
-                    <td class="my-cell {textUpOrDown(o.pnl)}">{o.pnl.toFixed(2)} ({o.roe.toFixed(2)}%)</td>
-                    <td class="my-cell">{parseIsoToDate(o.created_at)}</td>
-                    <td class="my-cell">{parseIsoToDate(o.closed_at)}</td>
-                </tr>
-            {/each}
-            </tbody>
-        </table>
-
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {#each $data.slice().reverse() as o}
+                        <tr>
+                            <td class="border-none p-1 {bgUpOrDown(o.order_type === 'Long' ? 1 : -1)}"></td>
+                            <td class="my-cell">{o.entry_price.toFixed(2)}</td>
+                            <td class="my-cell">{o.exit_price.toFixed(2)}</td>
+                            <td class="my-cell {textUpOrDown(o.pnl)}">{o.pnl.toFixed(2)} ({o.roe.toFixed(2)}%)</td>
+                            <td class="my-cell">{parseIsoToDate(o.created_at)}</td>
+                            <td class="my-cell">{parseIsoToDate(o.closed_at)}</td>
+                        </tr>
+                    {/each}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     {:else}
         <p>No orders yet.</p>
 
