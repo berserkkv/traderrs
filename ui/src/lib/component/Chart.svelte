@@ -1,4 +1,6 @@
 <script lang="ts">
+    import {onMount} from "svelte";
+
     type Order = {
         bot_id: number;
         symbol: string;
@@ -16,33 +18,38 @@
 
     export let orders: Order[];
 
-    // Calculate chart dimensions and scaling
-    const width = 300;
+    let width = 300;
     const height = 100;
 
+    // let container: HTMLDivElement;
+    //
+    // onMount(() => {
+    //     width = container.clientWidth;
+    // });
+
+    let capital = 0;
     // Get min and max PnL to normalize values
-    const pnls = orders.map(o => o.pnl);
-    const minPnl = Math.min(...pnls);
-    const maxPnl = Math.max(...pnls);
-    const range = maxPnl - minPnl || 1;
+    const pnls = orders.map(o => {
+        capital += o.pnl;
+        return capital;
+    });
 
-    // Scale function to map PnL to chart Y coordinates
-    const scaleY = (pnl: number) => height - ((pnl - minPnl) / range) * height;
+    $: maxPnl = Math.max(...pnls);
 
-    // Generate the points for the polyline
-    const points = orders.map((order, i) => {
-        const x = (i / (orders.length - 1)) * width;
-        const y = scaleY(order.pnl);
-        return `${x},${y}`;
+    $: points = pnls.map((value, i) => {
+        const x = (i / (pnls.length - 1) * width);
+        const y = height - (value / maxPnl) * height;
+        return `${x}, ${y}`
     }).join(' ');
+
+
 </script>
 
-
-<div>
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
+<div class="px-2 pt-2 bg-gray-900">
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} preserveAspectRatio="none">
         <polyline
                 fill="none"
-                stroke="rgba(150, 100, 100, 1.0)"
+                stroke="rgba(200, 200, 200, 1.0)"
                 stroke-width="1"
                 points={points}
         />

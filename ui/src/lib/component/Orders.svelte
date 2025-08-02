@@ -55,7 +55,7 @@
         <p>Error: {$error}</p>
     {:else if $data && $data.length !== 0}
         <div>
-            <div>
+            <div class="my-2">
                 <Chart orders={$data}/>
             </div>
             <div>
