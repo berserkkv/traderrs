@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      {#if !b.in_pos}
+      {#if b.in_pos}
         <div class="border-t-1 my-1 border-neutral-800">
         </div>
 
