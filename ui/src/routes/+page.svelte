@@ -1,6 +1,6 @@
 <script lang="ts">
   import System from "$lib/component/System.svelte";
-  import {textUpOrDown} from "$lib/tools.js";
+  import {borderUpOrDown, textUpOrDown, bgUpOrDown} from "$lib/tools.js";
   import * as tools from "$lib/tools";
 
   export let data: {
@@ -37,28 +37,29 @@
     }[];
   };
 
-  let totalCapital = data.bots.reduce((sum, bot) => sum + bot.capital + bot.order_capital, 0);
-  let startCapital = data.bots.length * 100;
+  const totalCapital = data.bots.reduce((sum, bot) => sum + bot.capital + bot.order_capital, 0);
+  const startCapital = data.bots.length * 100;
+  const totalRoe = ((totalCapital * 100) / startCapital) - 100;
 
 </script>
 
 <System/>
 
 <div class="pt-2 max-w-3xl flex-col justify-between m-auto">
-  <div class="text-sm mx-1 mb-2 px-2 bg-neutral-900 rounded-lg   text-neutral-500">
-    <p>Total: <span class="{textUpOrDown(totalCapital - startCapital)}">{totalCapital}</span></p>
+  <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg   text-neutral-500">
+    <p>Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}">{totalCapital}({totalRoe}%)</span></p>
   </div>
   {#each data.bots as b}
     <div
       class="{b.is_not_active
         ? 'text-neutral-600'
-        : 'text-neutral-400'} rounded-xl px-2 mx-1 py-1  mb-2 text-neutral-300  border border-neutral-900  "
+        : 'text-neutral-400'} rounded-xl px-2 mx-1 py-1  mb-2 text-neutral-300 card-bg   "
     >
       <div>
         <div class="flex justify-between items-start">
           <div class=" text-sm">
             <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
-            <span class="ml-1 text-xs">
+            <span class="ml-1 text-xs font-semibold">
               <span class="{textUpOrDown(1)}">{b.wins}</span>/
               <span class="{textUpOrDown(-1)}">{b.losses}</span>
             </span>
@@ -75,14 +76,17 @@
         </div>
       </div>
 
-      {#if b.in_pos}
-        <div class="border-t-2 my-1 {b.order_type === 'Long'
-            ? textUpOrDown(1)
-            : textUpOrDown(-1)}">
+      {#if !b.in_pos}
+        <div class="border-t-1 my-1 border-neutral-800">
         </div>
 
-        <div class="flex justify-between text-sm">
+        <div class="flex justify-between text-sm ">
           <span>
+            <span class=" px-1 mr-1 rounded-md {b.order_type === 'Long'
+            ? bgUpOrDown(1)
+            : bgUpOrDown(-1)}">
+              {b.order_type === 'Long' ? 'L' : 'S'}
+            </span>
             <span class=" {b.is_trailing_stop_active
                 ? 'text-neutral-400'
                 : 'text-neutral-700'}">TS</span>
@@ -91,8 +95,8 @@
 
           <span class="">{b.order_entry_price.toFixed(2)}</span>
           <span>
-            <span class="bg-fuchsia-950 rounded-lg px-1">{b.order_stop_loss.toFixed(2)}</span>
-            <span class="bg-indigo-950 rounded-lg px-1">{b.order_take_profit.toFixed(2)}</span>
+            <span class="{bgUpOrDown(-1)} rounded-lg px-1">{b.order_stop_loss.toFixed(2)}</span>
+            <span class="{bgUpOrDown(1)} rounded-lg px-1">{b.order_take_profit.toFixed(2)}</span>
           </span>
           <span class="text-neutral-500">
             <span class={textUpOrDown(b.pnl)}>

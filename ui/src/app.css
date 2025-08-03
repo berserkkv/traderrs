@@ -9,3 +9,7 @@
         @apply border border-neutral-800 px-1 py-1.5;
     }
 }
+
+.card-bg {
+    background: #121313;
+}
