@@ -68,9 +68,9 @@ impl EntryManager {
                 {
                     let bot_read = bot_lock.read().await;
                     if bot_read.is_not_active
-                        || bot_read.capital < 85.0
-                        || !is_timeframe_now(&*bot_read, minute)
-                        || bot_read.in_pos
+                      || bot_read.capital < 85.0
+                      || !is_timeframe_now(&*bot_read, minute)
+                      || bot_read.in_pos
                     {
                         continue;
                     }
@@ -94,12 +94,10 @@ impl EntryManager {
 
                 match command {
                     OrderCommand::Long | OrderCommand::Short => {
-                        if bot_lock
-                            .write()
-                            .await
-                            .open_position(&command, &self.connector)
-                            .await
-                            .is_ok()
+                        if !bot_lock.write().await
+                                    .open_position(&command, &self.connector)
+                                    .await
+                                    .is_ok()
                         {}
                     }
                     _ => {
@@ -123,8 +121,8 @@ impl EntryManager {
     ) {
         for tf in [Timeframe::Min1, Timeframe::Min5, Timeframe::Min15] {
             if tf == Timeframe::Min1
-                || (tf == Timeframe::Min5 && minute % 5 == 0)
-                || (tf == Timeframe::Min15 && minute % 15 == 0)
+              || (tf == Timeframe::Min5 && minute % 5 == 0)
+              || (tf == Timeframe::Min15 && minute % 15 == 0)
             {
                 self.get_candles(tf, candles_map).await;
             }

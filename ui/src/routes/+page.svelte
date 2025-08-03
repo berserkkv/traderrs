@@ -1,132 +1,100 @@
 <script lang="ts">
-    import System from "$lib/component/System.svelte";
-    import {textUpOrDown} from "$lib/tools.js";
+  import System from "$lib/component/System.svelte";
+  import {textUpOrDown} from "$lib/tools.js";
+  import * as tools from "$lib/tools";
 
-    export let data: {
-        bots: {
-            id: number;
-            name: string;
-            in_pos: boolean;
-            is_not_active: boolean;
-            is_trailing_stop_active: boolean;
-            last_scanned: string;
-            leverage: number;
-            wins: number;
-            losses: number;
-            capital: number;
-            order_capital: number;
-            log: string;
-            order_capital_with_leverage: number;
-            order_created_at: string;
-            order_entry_price: number;
-            order_scanned_at: string;
-            order_fee: number;
-            order_quantity: number;
-            order_stop_loss: number;
-            order_take_profit: number;
-            order_type: string;
-            pnl: number;
-            roe: number;
-            stop_loss_ratio: number;
-            take_profit_ratio: number;
-            strategy_name: string;
-            symbol: string;
-            timeframe: string;
-            trailing_stop_activation_point: number;
-        }[];
-    };
+  export let data: {
+    bots: {
+      id: number;
+      name: string;
+      in_pos: boolean;
+      is_not_active: boolean;
+      is_trailing_stop_active: boolean;
+      last_scanned: string;
+      leverage: number;
+      wins: number;
+      losses: number;
+      capital: number;
+      order_capital: number;
+      log: string;
+      order_capital_with_leverage: number;
+      order_created_at: string;
+      order_entry_price: number;
+      order_scanned_at: string;
+      order_fee: number;
+      order_quantity: number;
+      order_stop_loss: number;
+      order_take_profit: number;
+      order_type: string;
+      pnl: number;
+      roe: number;
+      stop_loss_ratio: number;
+      take_profit_ratio: number;
+      strategy_name: string;
+      symbol: string;
+      timeframe: string;
+      trailing_stop_activation_point: number;
+    }[];
+  };
 
-    export let data2 = [12, 1, 3, 10];
-    const max = Math.max(...data2);
+  let totalCapital = data.bots.reduce((sum, bot) => sum + bot.capital + bot.order_capital, 0);
+  let startCapital = data.bots.length * 100;
 
-    export function parseIsoToDate(isoString: string): string {
-        const date = new Date(isoString);
-        const now = new Date();
-
-        const isToday =
-            date.getFullYear() === now.getFullYear() &&
-            date.getMonth() === now.getMonth() &&
-            date.getDate() == now.getDate();
-
-        const pad = (n: number) => String(n).padStart(2, "0");
-
-        if (isToday) {
-            return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-        } else {
-            const shortYear = String(date.getFullYear()).slice(-2);
-            return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}.${pad(date.getMonth())}`;
-        }
-    }
 </script>
 
 <System/>
+
 <div class="pt-2 max-w-3xl flex-col justify-between m-auto">
-    {#each data.bots as b}
-        <div
-                class="{b.is_not_active
+  <div class="text-sm mx-1 mb-2 px-2 bg-neutral-900 rounded-lg   text-neutral-500">
+    <p>Total: <span class="{textUpOrDown(totalCapital - startCapital)}">{totalCapital}</span></p>
+  </div>
+  {#each data.bots as b}
+    <div
+      class="{b.is_not_active
         ? 'text-neutral-600'
-        : 'text-neutral-400'} rounded-xl px-2 mx-1 py-1  mb-2 text-neutral-300 bg-zinc-900  "
-        >
-            <div>
-                <div class="flex justify-between items-start">
-                    <div class=" text-sm">
-                        <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
-                        <span class="ml-1 text-xs">
-              <span class="{textUpOrDown(1)}">{b.wins}</span>/<span
-                                class="{textUpOrDown(-1)}">{b.losses}</span
-                        >
+        : 'text-neutral-400'} rounded-xl px-2 mx-1 py-1  mb-2 text-neutral-300  border border-neutral-900  "
+    >
+      <div>
+        <div class="flex justify-between items-start">
+          <div class=" text-sm">
+            <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
+            <span class="ml-1 text-xs">
+              <span class="{textUpOrDown(1)}">{b.wins}</span>/
+              <span class="{textUpOrDown(-1)}">{b.losses}</span>
             </span>
-                        <div class="text-neutral-600 text-tight">{b.log}</div>
-                    </div>
-                    <!--                    <div>-->
-                    <!--                        <svg viewBox="0 0 {data2.length} {max}" width="100" height="30">-->
-                    <!--                            <polyline-->
-                    <!--                                    fill="none"-->
-                    <!--                                    stroke="rgba(150, 100, 100, 1.0)"-->
-                    <!--                                    stroke-width="0.5"-->
-                    <!--                                    points="{data2.map((d, i) => `${i},${max - d}`).join(' ')}"-->
-                    <!--                            />-->
-                    <!--                        </svg>-->
-                    <!--                    </div>-->
-                    <div class="text-right text-sm">
+            <div class="text-neutral-600 text-tight">{b.log}</div>
+          </div>
+          <div class="text-right text-sm">
             <span>
               {(b.capital + b.order_capital).toFixed(2)}
             </span>
-                        <div class=" text-neutral-600 text-right text-tight">
-                            {parseIsoToDate(b.last_scanned)}
-                        </div>
-                    </div>
-                </div>
+            <div class=" text-neutral-600 text-right text-tight">
+              {tools.parseIsoToDate(b.last_scanned)}
             </div>
+          </div>
+        </div>
+      </div>
 
-            {#if b.in_pos}
-                <div
-                        class="border-t-2 my-1 {b.order_type === 'Long'
+      {#if b.in_pos}
+        <div class="border-t-2 my-1 {b.order_type === 'Long'
             ? textUpOrDown(1)
-            : textUpOrDown(-1)}
-                     "
-                ></div>
+            : textUpOrDown(-1)}">
+        </div>
 
-                <div class="flex justify-between text-sm">
+        <div class="flex justify-between text-sm">
           <span>
-            <span
-                    class=" {b.is_trailing_stop_active
+            <span class=" {b.is_trailing_stop_active
                 ? 'text-neutral-400'
-                : 'text-neutral-700'}">TS</span
-            >
-            <span class="">{parseIsoToDate(b.order_created_at)}</span>
+                : 'text-neutral-700'}">TS</span>
+            <span class="">{tools.parseIsoToDate(b.order_created_at)}</span>
           </span>
 
-                    <span class="">{b.order_entry_price.toFixed(2)}</span>
-                    <span>
-            <span class="bg-fuchsia-950 rounded-lg px-1"
-            >{b.order_stop_loss.toFixed(2)}</span
-            >
-            <span class="bg-indigo-950 rounded-lg px-1"
-            >{b.order_take_profit.toFixed(2)}</span
-            >
+          <span class="">{b.order_entry_price.toFixed(2)}</span>
+          <span>
+            <span class="bg-fuchsia-950 rounded-lg px-1">{b.order_stop_loss.toFixed(2)}</span>
+            <span class="bg-indigo-950 rounded-lg px-1">{b.order_take_profit.toFixed(2)}</span>
           </span>
-                    <span class="text-neutral-500">
+          <span class="text-neutral-500">
             <span class={textUpOrDown(b.pnl)}>
               {b.pnl.toFixed(1)}
             </span>(
@@ -134,10 +102,10 @@
               {b.roe.toFixed(1)}%
             </span>)
           </span>
-                </div>
-            {/if}
         </div>
-    {/each}
+      {/if}
+    </div>
+  {/each}
 </div>
 
 <style>

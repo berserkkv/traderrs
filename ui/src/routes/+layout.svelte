@@ -1,6 +1,6 @@
 <script lang="ts">
-	import '../app.css';
-    import '../tailwind.css'
+  import '../app.css';
+  import '../tailwind.css';
 
 </script>
 

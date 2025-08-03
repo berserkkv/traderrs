@@ -38,9 +38,9 @@ impl Assets {
     fn get_file(path: &str) -> Option<(Vec<u8>, String)> {
         Assets::get(path).map(|file| {
             let mime = MimeGuess::from_path(path)
-                .first_or_octet_stream()
-                .as_ref()
-                .to_owned();
+              .first_or_octet_stream()
+              .as_ref()
+              .to_owned();
             (file.data.into_owned(), mime)
         })
     }
@@ -109,19 +109,19 @@ async fn main() {
     });
 
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+      .allow_origin(Any)
+      .allow_methods(Any)
+      .allow_headers(Any);
 
     let app = assets_router
-        .route("/api/v1/bots", get(get_all_bot))
-        .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
-        .route("/api/v1/system", get(get_system_usage))
-        .layer(Extension(bots))
-        .layer(Extension(order_map))
-        .layer(Extension(started_time))
-        .layer(cors)
-        .fallback(fallback);
+      .route("/api/v1/bots", get(get_all_bot))
+      .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
+      .route("/api/v1/system", get(get_system_usage))
+      .layer(Extension(bots))
+      .layer(Extension(order_map))
+      .layer(Extension(started_time))
+      .layer(cors)
+      .fallback(fallback);
 
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
     info!("listening on https://{}", listener.local_addr().unwrap());
@@ -133,14 +133,12 @@ async fn get_all_bot(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) -> Json<
     for b in bots.iter() {
         v.push(b.read().await.clone());
     }
+
     tools::sort_bots(&mut v);
     Json(v)
 }
 
-async fn get_orders_by_id(
-    Path(id): Path<i64>,
-    Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>,
-) -> Json<Vec<Order>> {
+async fn get_orders_by_id(Path(id): Path<i64>, Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>) -> Json<Vec<Order>> {
     // let mut orders: Vec<Order> = Vec::new();
     //
     // for _ in 0..id {
@@ -160,19 +158,17 @@ async fn get_orders_by_id(
     // Json(orders)
 
     let mut orders = order_map
-        .read()
-        .await
-        .get(&id)
-        .cloned()
-        .unwrap_or(Vec::new());
+      .read()
+      .await
+      .get(&id)
+      .cloned()
+      .unwrap_or(Vec::new());
     orders.reverse();
 
     Json(orders)
 }
 
-async fn get_system_usage(
-    Extension(started_time): Extension<DateTime<FixedOffset>>,
-) -> Json<SystemInfo> {
+async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffset>>) -> Json<SystemInfo> {
     let sys = System::new_all();
     let mut cpu_usage: f32 = 0.0;
 

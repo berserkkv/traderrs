@@ -55,7 +55,6 @@ impl PositionManager {
                         }
                         Err(e) => {
                             error!("Error fetching price, {}", e);
-                            continue;
                         }
                     }
                 }
@@ -108,9 +107,9 @@ impl PositionManager {
 
         for o in orders.iter_mut() {
             orders_map
-                .entry(o.bot_id)
-                .or_insert(Vec::new())
-                .push(o.clone());
+              .entry(o.bot_id)
+              .or_insert(Vec::new())
+              .push(o.clone());
         }
     }
 }
