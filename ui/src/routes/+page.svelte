@@ -61,8 +61,7 @@
           <div class=" text-sm">
             <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
             <span class="ml-1 text-xs font-semibold">
-              <span class="{textUpOrDown(1)}">{b.wins}</span>/
-              <span class="{textUpOrDown(-1)}">{b.losses}</span>
+              <span class="{textUpOrDown(1)}">{b.wins}</span>/<span class="{textUpOrDown(-1)}">{b.losses}</span>
             </span>
             <div class="text-neutral-600 text-tight">{b.log}</div>
           </div>
