@@ -47,7 +47,8 @@
 
 <div class="pt-2 max-w-3xl flex-col justify-between m-auto">
   <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg   text-neutral-500">
-    <p>Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}">{totalCapital}({totalRoe}%)</span></p>
+    <p>Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}">{totalCapital.toFixed(2)}
+      ({totalRoe.toFixed(2)}%)</span></p>
   </div>
   {#each data.bots as b}
     <div
@@ -80,9 +81,9 @@
         <div class="border-t-1 my-1 border-neutral-800">
         </div>
 
-        <div class="flex justify-between text-sm ">
+        <div class="flex justify-between text-xs ">
           <span>
-            <span class=" px-1 mr-1 rounded-md {b.order_type === 'Long'
+            <span class=" px-1  rounded-md {b.order_type === 'Long'
             ? bgUpOrDown(1)
             : bgUpOrDown(-1)}">
               {b.order_type === 'Long' ? 'L' : 'S'}
@@ -90,7 +91,8 @@
             <span class=" {b.is_trailing_stop_active
                 ? 'text-neutral-400'
                 : 'text-neutral-700'}">TS</span>
-            <span class="">{tools.parseIsoToDate(b.order_created_at)}</span>
+            <span
+              class="">{tools.parseIsoToDate(b.order_created_at)}</span>
           </span>
 
           <span class="">{b.order_entry_price.toFixed(2)}</span>
