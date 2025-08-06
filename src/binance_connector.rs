@@ -24,7 +24,7 @@ impl BinanceConnector {
         }
     }
 
-    pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn Error>> {
+    pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn Error  + Send + Sync>> {
         let url = format!(
             "https://fapi.binance.com/fapi/v2/ticker/price?symbol={}",
             symbol.to_string()
@@ -42,7 +42,7 @@ impl BinanceConnector {
         symbol: Symbol,
         timeframe: Timeframe,
         limit: i32,
-    ) -> Result<Vec<Candle>, Box<dyn Error>> {
+    ) -> Result<Vec<Candle>, Box<dyn Error + Send + Sync>> {
         let url = format!(
             "https://fapi.binance.com/fapi/v1/klines?symbol={}&interval={}&limit={}",
             symbol.to_string(),

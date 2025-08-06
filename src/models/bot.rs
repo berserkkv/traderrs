@@ -1,7 +1,7 @@
 use crate::binance_connector::BinanceConnector;
 use crate::calculator::{
-  calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss,
-  calculate_take_profit, calculate_taker_fee,
+    calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss,
+    calculate_take_profit, calculate_taker_fee,
 };
 use crate::enums::Symbol::SolUsdt;
 use crate::enums::Timeframe::Min1;
@@ -150,7 +150,7 @@ impl Bot {
     }
   }
 
-  pub fn can_open_position(&self) -> Result<(), Box<dyn Error>> {
+  pub fn can_open_position(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
     if self.is_not_active {
       debug!(
                 "bot can't open position, bot not active, name: {}",
@@ -180,7 +180,7 @@ impl Bot {
     &mut self,
     command: &OrderCommand,
     connector: &BinanceConnector,
-  ) -> Result<(), Box<dyn Error>> {
+  ) -> Result<(), Box<dyn Error + Send + Sync>> {
     self.can_open_position()?;
 
     let price = connector.get_price(&self.symbol).await?;

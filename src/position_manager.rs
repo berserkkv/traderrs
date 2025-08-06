@@ -13,13 +13,13 @@ use tokio::sync::RwLock;
 pub struct PositionManager {
     bots: Arc<Vec<RwLock<Bot>>>,
     orders: Arc<RwLock<HashMap<i64, Vec<Order>>>>,
-    connector: BinanceConnector,
+    connector: Arc<BinanceConnector>,
 }
 
 impl PositionManager {
     pub fn new(
         bots: Arc<Vec<RwLock<Bot>>>,
-        connector: BinanceConnector,
+        connector: Arc<BinanceConnector>,
         orders: Arc<RwLock<HashMap<i64, Vec<Order>>>>,
     ) -> Self {
         Self {

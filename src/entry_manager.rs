@@ -10,18 +10,19 @@ use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Semaphore};
+use tokio::task::JoinHandle;
 
 #[derive(Debug)]
 pub struct EntryManager {
     bots: Arc<Vec<RwLock<Bot>>>,
     bots_data: HashMap<Timeframe, HashMap<Symbol, ()>>,
-    connector: BinanceConnector,
+    connector: Arc<BinanceConnector>,
     smallest_timeframe: u64,
 }
 
 impl EntryManager {
-    pub fn new(bots: Arc<Vec<RwLock<Bot>>>, connector: BinanceConnector) -> Self {
+    pub fn new(bots: Arc<Vec<RwLock<Bot>>>, connector: Arc<BinanceConnector>) -> Self {
         Self {
             bots,
             bots_data: HashMap::new(),
@@ -91,14 +92,13 @@ impl EntryManager {
                 };
 
                 (command, strategy_info) = strategy::get_strategy(&strategy_name).run(candles);
+                debug!("command: {:?}, info: {}", command, strategy_info);
 
                 match command {
                     OrderCommand::Long | OrderCommand::Short => {
-                        if !bot_lock.write().await
-                                    .open_position(&command, &self.connector)
-                                    .await
-                                    .is_ok()
-                        {}
+                        if let Err(e) = bot_lock.write().await.open_position(&command, &self.connector).await {
+                            error!("Failed to open position for {}: {}", bot_lock.read().await.name, e);
+                        }
                     }
                     _ => {
                         bot_lock.write().await.log = strategy_info.clone();
@@ -114,35 +114,54 @@ impl EntryManager {
         }
     }
 
-    async fn update_candles(
-        &mut self,
-        minute: usize,
-        candles_map: &mut HashMap<String, Vec<Candle>>,
-    ) {
-        for tf in [Timeframe::Min1, Timeframe::Min5, Timeframe::Min15] {
-            if tf == Timeframe::Min1
-              || (tf == Timeframe::Min5 && minute % 5 == 0)
-              || (tf == Timeframe::Min15 && minute % 15 == 0)
-            {
-                self.get_candles(tf, candles_map).await;
+
+    async fn update_candles(&self, minute: usize, candles_map: &mut HashMap<String, Vec<Candle>>) {
+        let connector = Arc::clone(&self.connector);
+        let semaphore = Arc::new(Semaphore::new(20)); // Limit concurrent tasks
+        let mut fetch_tasks = Vec::new();
+
+        let timeframes_to_fetch = [
+            Timeframe::Min1,
+            Timeframe::Min5,
+            Timeframe::Min15
+        ].into_iter().filter(|tf| {
+            *tf == Timeframe::Min1
+              || (*tf == Timeframe::Min5 && minute % 5 == 0)
+              || (*tf == Timeframe::Min15 && minute % 15 == 0)
+        });
+
+        for tf in timeframes_to_fetch {
+            if let Some(inner_map) = self.bots_data.get(&tf) {
+                for smb in inner_map.keys() {
+                    let smb_copy = smb.clone();
+                    let key = format!("{:?}{:?}", tf, smb);
+                    let connector = Arc::clone(&connector);
+                    let tf_copy = tf;
+                    let permit = Arc::clone(&semaphore).acquire_owned().await.unwrap();
+
+                    let handle: JoinHandle<Option<(String, Vec<Candle>)>> = tokio::spawn(async move {
+                        let _permit = permit; // Drop when task is done
+                        match connector.get_candles(smb_copy, tf_copy, 202).await {
+                            Ok(candles) => Some((key, candles)),
+                            Err(e) => {
+                                error!("Error fetching candles for {}: {}", key, e);
+                                None
+                            }
+                        }
+                    });
+
+                    fetch_tasks.push(handle);
+                }
+            }
+        }
+
+        debug!("min: {}, tasks: {}", minute, fetch_tasks.len());
+
+        for task in fetch_tasks {
+            if let Ok(Some((key, candles))) = task.await {
+                candles_map.insert(key, candles);
             }
         }
     }
 
-    async fn get_candles(&self, tf: Timeframe, candles_map: &mut HashMap<String, Vec<Candle>>) {
-        if let Some(set) = self.bots_data.get(&tf) {
-            for smb in set.keys() {
-                let key = format!("{:?}{:?}", tf, smb);
-                if !candles_map.contains_key(&key) {
-                    match self.connector.get_candles(*smb, tf, 202).await {
-                        Ok(candles) => candles_map.insert(key, candles),
-                        Err(e) => {
-                            error!("Error fetching candles, {}", e);
-                            continue;
-                        }
-                    };
-                }
-            }
-        }
-    }
 }

@@ -193,10 +193,10 @@ fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Or
     let orders_map: Arc<RwLock<HashMap<i64, Vec<Order>>>> = Arc::new(RwLock::new(HashMap::new()));
     let mut position_manager = PositionManager::new(
         Arc::clone(&bots),
-        connector.clone(),
+        Arc::new(connector.clone()),
         Arc::clone(&orders_map),
     );
-    let mut entry_manager = EntryManager::new(Arc::clone(&bots), connector);
+    let mut entry_manager = EntryManager::new(Arc::clone(&bots), Arc::new(connector));
 
     tokio::spawn(async move {
         position_manager.start().await;
