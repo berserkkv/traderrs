@@ -1,3 +1,4 @@
+use chrono::{FixedOffset, Utc};
 use env_logger::fmt::style::{Color, RgbColor};
 use env_logger::Builder;
 use std::env;
@@ -10,11 +11,8 @@ pub fn init_logger() {
 
     let mut builder = Builder::new();
 
-    let level = if cfg!(debug_assertions) {
-        env::var("RUST_LOG").unwrap_or("info".to_string())
-    } else {
-        env::var("RUST_LOG").unwrap_or("warn".to_string())
-    };
+    let level = env::var("RUST_LOG").unwrap_or("info".to_string());
+
 
     builder.parse_filters(&level);
 
@@ -32,6 +30,9 @@ pub fn init_logger() {
             let file = record.file().unwrap_or("<unknown>");
             let line = record.line().unwrap_or(0);
 
+            let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+            let now = Utc::now().with_timezone(&offset).format("%H:%M:%S %d/%m");
+
             let mut abs_path = project_root.clone();
             abs_path.push(file);
 
@@ -48,6 +49,13 @@ pub fn init_logger() {
                 2: 210,
             })));
             write!(buf, " {}{} ", level_style, record.args()).expect("TODO: panic message");
+
+            let level_style = level_style.fg_color(Some(Color::from(RgbColor {
+                0: 160,
+                1: 140,
+                2: 200,
+            })));
+            write!(buf, "{}{} ", level_style, now).expect("TODO: panic message");
 
             let level_style = level_style.fg_color(Some(Color::from(RgbColor {
                 0: 45,

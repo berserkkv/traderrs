@@ -84,7 +84,7 @@ impl EntryManager {
                 candles = match candles_option {
                     Some(data) if !data.is_empty() => data,
                     _ => {
-                        warn!("Problem with connector");
+                        debug!("Problem with connector");
                         bot_lock.write().await.log = "Problem with connector".to_string();
 
                         continue;
@@ -144,7 +144,7 @@ impl EntryManager {
                         match connector.get_candles(smb_copy, tf_copy, 202).await {
                             Ok(candles) => Some((key, candles)),
                             Err(e) => {
-                                error!("Error fetching candles for {}: {}", key, e);
+                                error!("Error fetching candles: {}", e);
                                 None
                             }
                         }

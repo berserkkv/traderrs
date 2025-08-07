@@ -13,7 +13,7 @@ export function parseIsoToDate(isoString: string): string {
     return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
   } else {
     const shortYear = String(date.getFullYear()).slice(-2);
-    return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}.${pad(date.getMonth())}`;
+    return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}/${pad(date.getMonth())}`;
   }
 }
 
