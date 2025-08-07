@@ -19,16 +19,16 @@ export function parseIsoToDate(isoString: string): string {
 
 export function textUpOrDown(num: number): string {
   if (num > 0.0) {
-    return "text-indigo-900";
+    return "text-blue-700";
   } else if (num < 0.0) {
-    return "text-fuchsia-900";
+    return "text-fuchsia-800";
   }
   return "text-neutral-600";
 }
 
 export function bgUpOrDown(num: number): string {
   if (num > 0.0) {
-    return "bg-indigo-950";
+    return "bg-blue-950";
   } else if (num < 0.0) {
     return "bg-fuchsia-950";
   }
@@ -37,7 +37,7 @@ export function bgUpOrDown(num: number): string {
 
 export function borderUpOrDown(num: number): string {
   if (num > 0.0) {
-    return "border-indigo-950";
+    return "border-blue-950";
   } else if (num < 0.0) {
     return "border-fuchsia-950";
   }
