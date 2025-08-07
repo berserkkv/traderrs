@@ -218,7 +218,7 @@ fn init_bots() -> Vec<RwLock<Bot>> {
     let trailing_stop_activation_point = 0.1;
 
     let tf = [Min1, Min5, Min15];
-    let st = ["EmaMacd", "EmaMacd2"];
+    let st = ["EmaMacd", "EmaMacd2", "EmaBounce"];
     let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
 
     for t in tf.iter() {
