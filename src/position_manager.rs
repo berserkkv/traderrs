@@ -7,7 +7,8 @@ use chrono::{DateTime, FixedOffset, Utc};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Semaphore};
+use tokio::task::JoinHandle;
 
 #[derive(Debug)]
 pub struct PositionManager {
@@ -38,27 +39,13 @@ impl PositionManager {
         let mut now: DateTime<FixedOffset>;
         let mut should_close: bool;
         let mut cur_price: f64;
+
+        let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
+        let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
         loop {
             now = Utc::now().with_timezone(&offset);
 
-            for bot in self.bots.iter() {
-                let bot_read = bot.read().await;
-                if !bot_read.in_pos {
-                    continue;
-                }
-                debug!("scanning position {}", bot_read.name);
-
-                if !prices.contains_key(&bot_read.symbol) {
-                    match self.connector.get_price(&bot_read.symbol).await {
-                        Ok(price) => {
-                            prices.insert(bot_read.symbol, price);
-                        }
-                        Err(e) => {
-                            error!("Error fetching price, {}", e);
-                        }
-                    }
-                }
-            }
+            self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
 
             if prices.is_empty() {
                 tokio::time::sleep(std::time::Duration::from_millis(sleeping_time)).await;
@@ -110,6 +97,47 @@ impl PositionManager {
               .entry(o.bot_id)
               .or_insert(Vec::new())
               .push(o.clone());
+        }
+    }
+
+    async fn update_prices(&self, prices: &mut HashMap<Symbol, f64>, fetch_tasks: &mut Vec<JoinHandle<Option<(Symbol, f64)>>>, fetch_symbols: &mut HashMap<Symbol, ()>){
+       fetch_tasks.clear();
+        fetch_symbols.clear();
+
+        for bot in self.bots.iter() {
+            let bot_read = bot.read().await;
+            if !bot_read.in_pos {
+                continue;
+            }
+
+            fetch_symbols.insert(bot_read.symbol, {});
+
+        }
+        let semaphore = Arc::new(Semaphore::new(20)); // Limit concurrent tasks
+
+
+        for smb in fetch_symbols.keys() {
+            let smb_copy = smb.clone();
+            let connector = Arc::clone(&self.connector);
+            let permit = Arc::clone(&semaphore).acquire_owned().await.unwrap();
+
+            let handler: JoinHandle<Option<(Symbol, f64)>> = tokio::spawn( async move {
+                let _permit = permit;
+                match connector.get_price(&smb_copy).await {
+                    Ok(price) => Some((smb_copy, price)),
+                    Err(e) => {
+                        error!("Error fetching price for {:?}: {}", smb_copy, e);
+                        None
+                    }
+                }
+            });
+            fetch_tasks.push(handler);
+        }
+
+        for task in fetch_tasks {
+            if let Ok(Some((smb, price))) = task.await {
+                prices.insert(smb, price);
+            }
         }
     }
 }
