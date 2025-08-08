@@ -1,12 +1,11 @@
 @import "tailwindcss";
 
 @layer utilities {
-    .my-table {
-        @apply table-auto border border-neutral-800 border-collapse;
+    table {
+        border-collapse: collapse;
     }
-
-    .my-cell {
-        @apply border border-neutral-800 px-1 py-1.5;
+    .table-cell {
+        @apply border border-gray-950 px-2 py-1;
     }
 }
 

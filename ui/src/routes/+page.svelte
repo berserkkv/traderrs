@@ -1,6 +1,6 @@
 <script lang="ts">
   import System from "$lib/component/System.svelte";
-  import {bgUpOrDown, textUpOrDown} from "$lib/tools.js";
+  import {bgUpOrDown, calculateWinPercentage, textUpOrDown} from "$lib/tools.js";
   import * as tools from "$lib/tools";
 
   export let data: {
@@ -50,13 +50,14 @@
 <System />
 
 <div class="pt-2 max-w-3xl flex-col justify-between m-auto">
-  <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg text-neutral-500">
+  <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg text-neutral-500 flex">
     <p>
       Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}"
         >{totalCapital.toFixed(2)}
         ({totalRoe.toFixed(2)}%)</span
       >
     </p>
+    <a class="ml-2 underline text-blue-600" href="/bots/statistics">Statistics</a>
   </div>
   {#each data.bots as b}
     <div
@@ -69,9 +70,8 @@
           <div class=" text-sm">
             <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
             <span class="ml-1 text-xs font-semibold">
-              <span class={textUpOrDown(1)}>{b.wins}</span>/<span
-                class={textUpOrDown(-1)}>{b.losses}</span
-              >
+              <span class={textUpOrDown(1)}>{b.wins}</span>/<span class={textUpOrDown(-1)}>{b.losses}</span>
+              <span>({calculateWinPercentage(b.wins, b.wins + b.losses).toFixed(1)}%)</span>
             </span>
             <div class="text-neutral-600 text-tight">{b.log}</div>
           </div>

@@ -69,3 +69,10 @@ pub struct BotDto {
 pub struct Container {
     pub repository: Repository,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BotResult {
+    pub capital: f64,
+    pub time: DateTime<FixedOffset>,
+}
+

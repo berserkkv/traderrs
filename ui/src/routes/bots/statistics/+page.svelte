@@ -1,14 +1,29 @@
 <script lang="ts">
+  import type {BotResult, BotResultMap} from "$lib/types";
+  import * as tools from "$lib/tools";
 
-  export let data: Record<string, [number, string][]>;
+  export let data: { botResults: BotResultMap };
 
-
-  console.log(data);
+  const botResults = data.botResults;
+  
+  const entries: [string, BotResult[]][] = Object.entries(botResults ?? {});
 </script>
 
-{#each Object.entries(data.data) as [name, arr]}
-  <p>{name}</p>
-  {#each arr as [capital, time]}
-    <span class="text-xs">{capital} </span>
+<table>
+  <tbody>
+  {#each entries as [name, results]}
+    <tr class="odd:bg-gray-900">
+      <td class="table-cell text-neutral-300">
+        <p>{name}</p>
+      </td>
+      {#each results as res}
+        <td class="table-cell">
+          <p class="{tools.textUpOrDown(res.capital - 100)}">
+            {res.capital}
+          </p>
+        </td>
+      {/each}
+    </tr>
   {/each}
-{/each}
+  </tbody>
+</table>

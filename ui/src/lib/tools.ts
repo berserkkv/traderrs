@@ -35,6 +35,13 @@ export function bgUpOrDown(num: number): string {
   return "text-neutral-700";
 }
 
+export function calculateWinPercentage(wins: number, total: number): number {
+  if (total === 0) {
+    return 0.0;
+  }
+  return wins * 100 / total;
+}
+
 export function borderUpOrDown(num: number): string {
   if (num > 0.0) {
     return "border-blue-950";

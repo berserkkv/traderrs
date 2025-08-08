@@ -63,7 +63,7 @@ impl EntryManager {
 
 
             //resetting at midnight everyday
-            if now.minute() != 0 || now.hour() == 0 && now.minute() == 0 {
+            if now.hour() == 0 && now.minute() == 0 {
                 for b in self.bots.iter() {
                     let _ = self.c.repository.create_bot(b.read().await).expect("");
                     b.write().await.reset();

@@ -16,7 +16,7 @@ use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{BotDto, Container, Order, SystemInfo};
+use crate::models::models::{BotDto, BotResult, Container, Order, SystemInfo};
 use crate::position_manager::PositionManager;
 use crate::repository::Repository;
 use axum::extract::Path;
@@ -27,6 +27,7 @@ use log::info;
 use mime_guess::MimeGuess;
 use rusqlite::Connection;
 use rust_embed::RustEmbed;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -184,13 +185,14 @@ async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>){
     }
 }
 
-async fn get_bot_statistics(Extension(c): Extension<Arc<Container>>) -> Json<HashMap<String, Vec<(f64, DateTime<FixedOffset>)>>>{
+async fn get_bot_statistics(Extension(c): Extension<Arc<Container>>) -> Json<HashMap<String, Vec<BotResult>>>{
     let bots = c.repository.get_all_bots().unwrap();
     let mut hm = HashMap::new();
+
     for b in bots {
         hm.entry(b.name)
           .or_insert(Vec::new())
-          .push((b.capital, b.created_at))
+          .push(BotResult{capital: b.capital, time: b.created_at})
     }
 
     Json(hm)
