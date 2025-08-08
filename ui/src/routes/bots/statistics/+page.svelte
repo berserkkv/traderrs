@@ -1,6 +1,7 @@
 <script lang="ts">
   import type {BotResult, BotResultMap} from "$lib/types";
   import * as tools from "$lib/tools";
+  import System from "$lib/component/System.svelte";
 
   export let data: { botResults: BotResultMap };
 
@@ -9,6 +10,9 @@
   const entries: [string, BotResult[]][] = Object.entries(botResults ?? {});
 </script>
 
+<div>
+  <System />
+  <a class="underline text-blue-600" href="/">Main</a>
 <table>
   <tbody>
   {#each entries as [name, results]}
@@ -27,3 +31,4 @@
   {/each}
   </tbody>
 </table>
+</div>
