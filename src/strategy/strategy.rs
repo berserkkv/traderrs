@@ -3,6 +3,7 @@ use crate::models::models::Candle;
 use crate::strategy::str_impl::{EmaBounce, EmaMacd, EmaMacd2};
 
 pub trait Strategy {
+    #[allow(dead_code)]
     fn name(&self) -> &str;
     fn run(&self, candles: &[Candle]) -> (OrderCommand, String);
 }

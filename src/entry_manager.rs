@@ -3,10 +3,9 @@ use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::Candle;
 use crate::strategy::strategy;
-
 use crate::tools::{is_timeframe_now, wait_until_next_aligned_tick};
 use chrono::{DateTime, FixedOffset, Local, Timelike};
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -35,7 +34,6 @@ impl EntryManager {
         let mut now: DateTime<FixedOffset>;
         let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
 
-        let mut minute: usize;
         let mut command: OrderCommand;
         let mut strategy_info: String;
         let mut candles_option: Option<&Vec<Candle>>;
@@ -60,9 +58,17 @@ impl EntryManager {
             //init
             candles_map = HashMap::with_capacity(self.bots.len());
             now = Local::now().with_timezone(&offset);
-            minute = now.minute() as usize;
 
-            self.update_candles(minute, &mut candles_map).await;
+
+            //resetting at midnight everyday
+            if now.hour() == 0 && now.minute() == 0 {
+                for b in self.bots.iter() {
+                    b.write().await.reset();
+                }
+            }
+
+
+            self.update_candles(now.minute(), &mut candles_map).await;
 
             for bot_lock in self.bots.iter() {
                 //read section
@@ -70,7 +76,7 @@ impl EntryManager {
                     let bot_read = bot_lock.read().await;
                     if bot_read.is_not_active
                       || bot_read.capital < 85.0
-                      || !is_timeframe_now(&*bot_read, minute)
+                      || !is_timeframe_now(&*bot_read, now.minute())
                       || bot_read.in_pos
                     {
                         continue;
@@ -115,7 +121,7 @@ impl EntryManager {
     }
 
 
-    async fn update_candles(&self, minute: usize, candles_map: &mut HashMap<String, Vec<Candle>>) {
+    async fn update_candles(&self, minute: u32, candles_map: &mut HashMap<String, Vec<Candle>>) {
         let connector = Arc::clone(&self.connector);
         let semaphore = Arc::new(Semaphore::new(20)); // Limit concurrent tasks
         let mut fetch_tasks = Vec::new();

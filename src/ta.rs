@@ -1,3 +1,6 @@
+
+
+#[allow(dead_code)]
 pub fn bollinger_bands_b(prices: &[f64], period: usize) -> f64 {
     let n = prices.len();
     if n < period || period == 0 { return f64::NAN; }
@@ -23,6 +26,7 @@ pub fn ema(prices: &[f64], period: usize) -> f64 {
     ema
 }
 
+#[allow(dead_code)]
 pub fn slma(prices: &[f64], period: usize) -> f64 {
     if prices.len() < period {
         return 0.0;
@@ -36,6 +40,7 @@ pub fn slma(prices: &[f64], period: usize) -> f64 {
         / weight_sum as f64
 }
 
+#[allow(dead_code)]
 pub fn macd(prices: &[f64]) -> (f64, f64, f64) {
     let (macd, signal, hist) = macd_slice(prices);
     (
@@ -54,6 +59,7 @@ pub fn macd_slice(prices: &[f64]) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
     (macd, signal, histogram)
 }
 
+#[allow(dead_code)]
 pub fn slma_slice(prices: &[f64], period: usize) -> Vec<f64> {
     if prices.len() < period {
         return vec![];
@@ -83,6 +89,7 @@ pub fn ema_slice(prices: &[f64], period: usize) -> Vec<f64> {
     result
 }
 
+#[allow(dead_code)]
 pub fn bollinger_percent_b_slice(prices: &[f64], period: usize) -> Vec<f64> {
     let n = prices.len();
     let mut result = vec![0.0; n];

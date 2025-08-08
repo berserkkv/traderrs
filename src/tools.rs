@@ -13,6 +13,44 @@ pub fn get_close_prices(candles: &[Candle]) -> Vec<f64> {
     }
     close_prices
 }
+
+#[allow(dead_code)]
+pub fn get_open_prices(candles: &[Candle]) -> Vec<f64> {
+    let mut prices: Vec<f64> = Vec::with_capacity(candles.len());
+    for c in candles {
+        prices.push(c.open);
+    }
+    prices
+}
+
+#[allow(dead_code)]
+pub fn get_high_prices(candles: &[Candle]) -> Vec<f64> {
+    let mut prices: Vec<f64> = Vec::with_capacity(candles.len());
+    for c in candles {
+        prices.push(c.high);
+    }
+    prices
+}
+
+
+#[allow(dead_code)]
+pub fn get_low_prices(candles: &[Candle]) -> Vec<f64> {
+    let mut prices: Vec<f64> = Vec::with_capacity(candles.len());
+    for c in candles {
+        prices.push(c.low);
+    }
+    prices
+}
+
+
+#[allow(dead_code)]
+pub fn get_volume(candles: &[Candle]) -> Vec<f64> {
+    let mut vol: Vec<f64> = Vec::with_capacity(candles.len());
+    for c in candles {
+        vol.push(c.volume);
+    }
+    vol
+}
 pub fn format_timeframe(timeframe: &Timeframe) -> String {
     match timeframe {
         Timeframe::Min1 => "1m".to_string(),
@@ -37,7 +75,7 @@ pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
     );
     bot.roe = calculate_roe(bot.order_entry_price, price, bot.leverage, &bot.order_type);
 }
-pub fn is_timeframe_now(bot: &Bot, minute: usize) -> bool {
+pub fn is_timeframe_now(bot: &Bot, minute: u32) -> bool {
     match bot.timeframe {
         Timeframe::Min1 => true,
         Timeframe::Min5 => minute % 5 == 0,

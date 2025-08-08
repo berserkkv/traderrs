@@ -108,6 +108,19 @@ impl Bot {
     }
   }
 
+    pub fn reset(&mut self){
+        self.capital = 100.0;
+        self.is_not_active = false;
+        self.in_pos = false;
+        self.losses = 0;
+        self.wins = 0;
+        self.order_capital = 0.0;
+        self.order_capital_with_leverage = 0.0;
+        self.order_fee = 0.0;
+        self.pnl = 0.0;
+        self.roe = 0.0;
+    }
+    #[allow(dead_code)]
   pub fn new_dummy() -> Self {
     let name = format!("{}", "Dummy");
     let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc

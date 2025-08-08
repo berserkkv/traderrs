@@ -18,6 +18,7 @@ use crate::models::bot::Bot;
 use crate::models::models::{Order, SystemInfo};
 use crate::position_manager::PositionManager;
 use axum::extract::Path;
+use axum::routing::put;
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use chrono::{DateTime, FixedOffset, Utc};
 use log::info;
@@ -116,6 +117,7 @@ async fn main() {
     let app = assets_router
       .route("/api/v1/bots", get(get_all_bot))
       .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
+      .route("/api/v1/bots/reset", put(reset_bots))
       .route("/api/v1/system", get(get_system_usage))
       .layer(Extension(bots))
       .layer(Extension(order_map))
@@ -166,6 +168,12 @@ async fn get_orders_by_id(Path(id): Path<i64>, Extension(order_map): Extension<A
     orders.reverse();
 
     Json(orders)
+}
+
+async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>){
+    for b in bots.iter() {
+        b.write().await.reset();
+    }
 }
 
 async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffset>>) -> Json<SystemInfo> {

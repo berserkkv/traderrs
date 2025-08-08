@@ -3,6 +3,7 @@ use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Candle {
     pub close: f64,
     pub open: f64,
@@ -29,6 +30,7 @@ pub struct Order {
 }
 
 impl Order {
+    #[allow(dead_code)]
     pub fn dummy() -> Self {
         Self {
             symbol: Symbol::SolUsdt,
