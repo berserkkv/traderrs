@@ -19,7 +19,7 @@
       {#each results as res}
         <td class="table-cell">
           <p class="{tools.textUpOrDown(res.capital - 100)}">
-            {res.capital}
+            {res.capital.toFixed(1)}
           </p>
         </td>
       {/each}
