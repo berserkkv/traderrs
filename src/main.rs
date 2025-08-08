@@ -8,6 +8,7 @@ mod position_manager;
 mod strategy;
 mod ta;
 mod tools;
+mod repository;
 
 use crate::binance_connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
@@ -15,16 +16,19 @@ use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{Order, SystemInfo};
+use crate::models::models::{BotDto, Container, Order, SystemInfo};
 use crate::position_manager::PositionManager;
+use crate::repository::Repository;
 use axum::extract::Path;
 use axum::routing::put;
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use chrono::{DateTime, FixedOffset, Utc};
 use log::info;
 use mime_guess::MimeGuess;
+use rusqlite::Connection;
 use rust_embed::RustEmbed;
 use std::collections::HashMap;
+use std::error::Error;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::net::TcpListener;
@@ -89,10 +93,12 @@ async fn main() {
     #[cfg(debug_assertions)]
     init_logger();
 
+
+
     let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
     let started_time = Utc::now().with_timezone(&offset);
 
-    let (bots, order_map) = init_dependencies();
+    let (bots, order_map, c) = init_dependencies();
 
     // Static assets router
     let assets_router = Assets::router();
@@ -119,9 +125,11 @@ async fn main() {
       .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
       .route("/api/v1/bots/reset", put(reset_bots))
       .route("/api/v1/system", get(get_system_usage))
+      .route("/api/v1/bots/statistics", get(get_bot_statistics))
       .layer(Extension(bots))
       .layer(Extension(order_map))
       .layer(Extension(started_time))
+      .layer(Extension(c))
       .layer(cors)
       .fallback(fallback);
 
@@ -176,6 +184,18 @@ async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>){
     }
 }
 
+async fn get_bot_statistics(Extension(c): Extension<Arc<Container>>) -> Json<HashMap<String, Vec<(f64, DateTime<FixedOffset>)>>>{
+    let bots = c.repository.get_all_bots().unwrap();
+    let mut hm = HashMap::new();
+    for b in bots {
+        hm.entry(b.name)
+          .or_insert(Vec::new())
+          .push((b.capital, b.created_at))
+    }
+
+    Json(hm)
+}
+
 async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffset>>) -> Json<SystemInfo> {
     let sys = System::new_all();
     let mut cpu_usage: f32 = 0.0;
@@ -194,7 +214,10 @@ async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffse
     })
 }
 
-fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>) {
+fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>, Arc<Container>) {
+    let r = get_repository().expect("Error creating repository");
+    let c = Arc::new(Container{repository: r});
+
     let bots = Arc::new(init_bots());
 
     let connector = BinanceConnector::new();
@@ -204,7 +227,7 @@ fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Or
         Arc::new(connector.clone()),
         Arc::clone(&orders_map),
     );
-    let mut entry_manager = EntryManager::new(Arc::clone(&bots), Arc::new(connector));
+    let mut entry_manager = EntryManager::new(Arc::clone(&bots), Arc::new(connector), Arc::clone(&c));
 
     tokio::spawn(async move {
         position_manager.start().await;
@@ -214,7 +237,7 @@ fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Or
         entry_manager.start().await;
     });
 
-    (bots, orders_map)
+    (bots, orders_map, c)
 }
 
 fn init_bots() -> Vec<RwLock<Bot>> {
@@ -248,4 +271,15 @@ fn init_bots() -> Vec<RwLock<Bot>> {
     }
 
     bots
+}
+
+fn get_repository() -> rusqlite::Result<Repository> {
+    let dp_path = "/tmp/traderrs_database.sqlite";
+
+    let path = std::path::Path::new(dp_path);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).unwrap();
+    }
+
+   Repository::new(dp_path)
 }

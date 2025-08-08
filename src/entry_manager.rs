@@ -1,7 +1,7 @@
 use crate::binance_connector::BinanceConnector;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
-use crate::models::models::Candle;
+use crate::models::models::{Candle, Container};
 use crate::strategy::strategy;
 use crate::tools::{is_timeframe_now, wait_until_next_aligned_tick};
 use chrono::{DateTime, FixedOffset, Local, Timelike};
@@ -17,15 +17,17 @@ pub struct EntryManager {
     bots: Arc<Vec<RwLock<Bot>>>,
     bots_data: HashMap<Timeframe, HashMap<Symbol, ()>>,
     connector: Arc<BinanceConnector>,
+    c: Arc<Container>,
     smallest_timeframe: u64,
 }
 
 impl EntryManager {
-    pub fn new(bots: Arc<Vec<RwLock<Bot>>>, connector: Arc<BinanceConnector>) -> Self {
+    pub fn new(bots: Arc<Vec<RwLock<Bot>>>, connector: Arc<BinanceConnector>, c: Arc<Container>) -> Self {
         Self {
             bots,
             bots_data: HashMap::new(),
             connector,
+            c,
             smallest_timeframe: 60,
         }
     }
@@ -61,8 +63,9 @@ impl EntryManager {
 
 
             //resetting at midnight everyday
-            if now.hour() == 0 && now.minute() == 0 {
+            if now.minute() != 0 || now.hour() == 0 && now.minute() == 0 {
                 for b in self.bots.iter() {
+                    let _ = self.c.repository.create_bot(b.read().await).expect("");
                     b.write().await.reset();
                 }
             }

@@ -1,4 +1,5 @@
 use crate::enums::{OrderCommand, Symbol};
+use crate::repository::Repository;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 
@@ -55,4 +56,16 @@ pub struct SystemInfo {
     pub(crate) cpu_usage: f32,
     pub(crate) memory_usage: u64,
     pub started_time: DateTime<FixedOffset>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BotDto {
+    pub name: String,
+    pub capital: f64,
+    pub created_at: DateTime<FixedOffset>
+}
+
+#[derive(Debug, Clone)]
+pub struct Container {
+    pub repository: Repository,
 }
