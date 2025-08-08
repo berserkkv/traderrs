@@ -121,6 +121,7 @@ impl Bot {
         self.roe = 0.0;
     }
     #[allow(dead_code)]
+    #[cfg(debug_assertions)]
   pub fn new_dummy() -> Self {
     let name = format!("{}", "Dummy");
     let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc

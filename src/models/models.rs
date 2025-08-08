@@ -31,6 +31,7 @@ pub struct Order {
 
 impl Order {
     #[allow(dead_code)]
+    #[cfg(debug_assertions)]
     pub fn dummy() -> Self {
         Self {
             symbol: Symbol::SolUsdt,

@@ -73,6 +73,7 @@ pub fn init_logger() {
         .init();
 }
 
+
 fn find_project_root(start_dir: &PathBuf) -> Option<PathBuf> {
     let mut dir = start_dir.clone();
     loop {
