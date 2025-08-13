@@ -48,8 +48,7 @@ impl PositionManager {
             self.scan_bots(&prices, &mut to_close, now).await;
 
             self.handle_closed_position(&mut to_close).await;
-            prices.clear();
-            to_close.clear();
+            
             tokio::time::sleep(std::time::Duration::from_millis(sleep_time)).await;
         }
     }
@@ -101,11 +100,14 @@ impl PositionManager {
               .or_insert(Vec::new())
               .push(o.clone());
         }
+
+        orders.clear();
     }
 
     async fn update_prices(&self, prices: &mut HashMap<Symbol, f64>, fetch_tasks: &mut Vec<JoinHandle<Option<(Symbol, f64)>>>, fetch_symbols: &mut HashMap<Symbol, ()>) {
         fetch_tasks.clear();
         fetch_symbols.clear();
+        prices.clear();
 
         for bot in self.bots.iter() {
             let bot_read = bot.read().await;

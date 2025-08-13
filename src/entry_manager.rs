@@ -39,8 +39,6 @@ impl EntryManager {
         let extra_sleep_time = 3;
 
 
-        let mut strategy_container: StrategyContainer = StrategyContainer::new();
-
         self.update_bots_data().await;
 
         wait_until_next_aligned_tick(Duration::from_secs(sleep_time)).await;
@@ -49,34 +47,16 @@ impl EntryManager {
         loop {
             now = Local::now().with_timezone(&offset);
 
-            strategy_container.reset();
+            self.strategy_container.reset();
 
             self.save_and_reset_bots(&now).await;
 
-            self.update_candles(now.minute(), &mut strategy_container).await;
+            self.update_candles(now.minute()).await;
 
             self.scan_bots(&now).await;
 
             wait_until_next_aligned_tick(Duration::from_secs(sleep_time)).await;
             tokio::time::sleep(Duration::from_secs(extra_sleep_time)).await;
-        }
-    }
-
-    async fn update_bots_data(&mut self) {
-        for bot in self.bots.iter() {
-            self.bots_data
-                .entry(bot.read().await.timeframe)
-                .or_insert(HashMap::new())
-                .insert(bot.read().await.symbol, ());
-        }
-    }
-
-    async fn save_and_reset_bots(&mut self, now: &DateTime<FixedOffset>) {
-        if now.hour() == 0 && now.minute() == 0 {
-            for b in self.bots.iter() {
-                let _ = self.c.repository.create_bot(b.read().await).expect("");
-                b.write().await.reset();
-            }
         }
     }
 
@@ -105,7 +85,25 @@ impl EntryManager {
         }
     }
 
-    async fn update_candles(&self, minute: u32, strategy_container: &mut StrategyContainer) {
+    async fn update_bots_data(&mut self) {
+        for bot in self.bots.iter() {
+            self.bots_data
+                .entry(bot.read().await.timeframe)
+                .or_insert(HashMap::new())
+                .insert(bot.read().await.symbol, ());
+        }
+    }
+
+    async fn save_and_reset_bots(&mut self, now: &DateTime<FixedOffset>) {
+        if now.hour() == 0 && now.minute() == 0 {
+            for b in self.bots.iter() {
+                let _ = self.c.repository.create_bot(b.read().await).expect("");
+                b.write().await.reset();
+            }
+        }
+    }
+
+    async fn update_candles(&mut self, minute: u32) {
         let connector = Arc::clone(&self.connector);
         let semaphore = Arc::new(Semaphore::new(20)); // Limit concurrent tasks
         let mut fetch_tasks = Vec::new();
@@ -149,7 +147,7 @@ impl EntryManager {
 
         for task in fetch_tasks {
             if let Ok(Some((key, candles))) = task.await {
-                strategy_container.candles_map.insert(key, candles);
+                self.strategy_container.candles_map.insert(key, candles);
             }
         }
     }
