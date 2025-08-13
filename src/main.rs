@@ -16,7 +16,7 @@ use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{BotDto, BotResult, Container, Order, SystemInfo};
+use crate::models::models::{BotResult, Container, Order, SystemInfo};
 use crate::position_manager::PositionManager;
 use crate::repository::Repository;
 use axum::extract::Path;
@@ -25,11 +25,8 @@ use axum::{http::StatusCode, routing::get, Extension, Json, Router};
 use chrono::{DateTime, FixedOffset, Utc};
 use log::info;
 use mime_guess::MimeGuess;
-use rusqlite::Connection;
 use rust_embed::RustEmbed;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::error::Error;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::net::TcpListener;
@@ -135,7 +132,7 @@ async fn main() {
       .fallback(fallback);
 
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
-    info!("listening on https://{}", listener.local_addr().unwrap());
+    info!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 

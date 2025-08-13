@@ -2,6 +2,7 @@ use crate::enums::{OrderCommand, Symbol};
 use crate::repository::Repository;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -74,5 +75,27 @@ pub struct Container {
 pub struct BotResult {
     pub capital: f64,
     pub time: DateTime<FixedOffset>,
+}
+
+#[derive(Debug)]
+pub struct StrategyContainer {
+    pub candles_map: HashMap<String, Vec<Candle>>,
+    pub vec_map: HashMap<String, Vec<f64>>,
+    pub last_map: HashMap<String, f64>,
+}
+
+impl StrategyContainer {
+    pub fn new() -> Self {
+        Self {
+            candles_map: HashMap::new(),
+            vec_map: HashMap::new(),
+            last_map: HashMap::new(),
+        }
+    }
+    pub fn reset(&mut self) {
+        self.candles_map.clear();
+        self.vec_map.clear();
+        self.last_map.clear()
+    }
 }
 
