@@ -74,7 +74,7 @@ impl Assets {
 
             router = router.route(&route_path, handler.clone());
 
-            // Handle /somepath/ route if the file is /somepath/index.html
+            // Handle /somePath/ route if the file is /somePath/index.html
             if path_string.ends_with("/index.html") {
                 let prefix = path_string.strip_suffix("index.html").unwrap();
                 let prefix_route = format!("/{}", prefix);
@@ -132,7 +132,7 @@ async fn main() {
       .fallback(fallback);
 
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
-    info!("listening on http://{}", listener.local_addr().unwrap());
+    info!("listening on port: {}", listener.local_addr().unwrap().port());
     axum::serve(listener, app).await.unwrap();
 }
 
