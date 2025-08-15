@@ -2,6 +2,7 @@ use crate::binance_connector::BinanceConnector;
 use crate::enums::Symbol;
 use crate::models::bot::Bot;
 use crate::models::models::Order;
+use crate::tools;
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
 use chrono::{DateTime, FixedOffset, Utc};
 use log::{debug, error, warn};
@@ -35,13 +36,12 @@ impl PositionManager {
         let sleep_time = 2000;
         let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(self.bots.len());
         let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
-        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
         let mut now: DateTime<FixedOffset>;
 
         let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
         let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
         loop {
-            now = Utc::now().with_timezone(&offset);
+            now = tools::get_date(3);
 
             self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
 

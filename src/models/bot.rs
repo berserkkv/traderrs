@@ -36,6 +36,7 @@ pub struct Bot {
     pub losses: i16,
 
     pub log: String,
+    pub started_at: DateTime<FixedOffset>,
     pub last_scanned: DateTime<FixedOffset>,
 
     pub leverage: f64,
@@ -75,8 +76,7 @@ impl Bot {
             tools::format_timeframe(&timeframe),
             format_symbol(&symbol)
         );
-        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
-        let now = Utc::now().with_timezone(&offset);
+        let now = tools::get_date(3);
         let strategy = strategy::get_strategy(&strategy_name);
 
         Self {
@@ -89,6 +89,7 @@ impl Bot {
             group: format!("{:?}{:?}", timeframe, symbol),
             capital,
             last_scanned: now,
+            started_at: now,
             log: "".to_string(),
             strategy: Some(strategy),
 
@@ -118,6 +119,7 @@ impl Bot {
     }
 
     pub fn reset(&mut self) {
+        self.started_at = tools::get_date(3);
         self.capital = 100.0;
         self.is_not_active = false;
         self.in_pos = false;
@@ -129,12 +131,12 @@ impl Bot {
         self.pnl = 0.0;
         self.roe = 0.0;
     }
+
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
     pub fn new_dummy() -> Self {
         let name = format!("{}", "Dummy");
-        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
-        let now = Utc::now().with_timezone(&offset);
+        let now = tools::get_date(3);
 
         Self {
             id: 1000,
@@ -143,8 +145,9 @@ impl Bot {
             is_not_active: false,
             timeframe: Min1,
             strategy_name: "Macd".to_string(),
-            capital: 1000.0,
+            capital: 100.0,
             last_scanned: now,
+            started_at: now,
             log: "".to_string(),
             group: "".to_string(),
             strategy: None,
@@ -200,11 +203,7 @@ impl Bot {
         Ok(())
     }
 
-    pub async fn open_position(
-        &mut self,
-        command: &OrderCommand,
-        connector: &BinanceConnector,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn open_position(&mut self, command: &OrderCommand, connector: &BinanceConnector) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.can_open_position()?;
 
         let price = connector.get_price(&self.symbol).await?;
@@ -220,8 +219,7 @@ impl Bot {
         let fee = calculate_taker_fee(capital);
         capital -= fee;
 
-        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
-        let now = Utc::now().with_timezone(&offset);
+        let now = tools::get_date(3);
 
         self.order_capital_with_leverage = self.leverage * capital;
         self.order_capital = capital;
@@ -325,7 +323,7 @@ impl Bot {
     }
 
     pub fn is_allowed_for_scanning(&self, now: &DateTime<FixedOffset>) -> bool {
-         self.is_not_active
+        self.is_not_active
           || self.capital < 85.0
           || !is_timeframe_now(self, now.minute())
           || self.in_pos
@@ -368,6 +366,7 @@ impl Clone for Bot {
             losses: self.losses,
             log: self.log.clone(),
             last_scanned: self.last_scanned,
+            started_at: self.started_at,
             leverage: self.leverage,
             take_profit_ratio: self.take_profit_ratio,
             stop_loss_ratio: self.stop_loss_ratio,

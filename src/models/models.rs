@@ -30,7 +30,6 @@ pub struct Order {
     pub fee: f64,
     pub leverage: f64,
 }
-
 impl Order {
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
@@ -59,23 +58,14 @@ pub struct SystemInfo {
     pub started_time: DateTime<FixedOffset>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct BotDto {
-    pub name: String,
-    pub capital: f64,
-    pub created_at: DateTime<FixedOffset>
-}
+
 
 #[derive(Debug, Clone)]
 pub struct Container {
     pub repository: Repository,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BotResult {
-    pub capital: f64,
-    pub time: DateTime<FixedOffset>,
-}
+
 
 #[derive(Debug)]
 pub struct StrategyContainer {
@@ -83,7 +73,6 @@ pub struct StrategyContainer {
     pub vec_map: HashMap<String, Vec<f64>>,
     pub last_map: HashMap<String, f64>,
 }
-
 impl StrategyContainer {
     pub fn new() -> Self {
         Self {
@@ -98,4 +87,30 @@ impl StrategyContainer {
         self.last_map.clear()
     }
 }
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StatisticResult {
+    pub name: String,
+    pub capital: f64,
+    pub wins: u16,
+    pub losses: u16,
+    pub start_time: DateTime<FixedOffset>,
+    pub end_time: DateTime<FixedOffset>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BotStatistic{
+    pub bot_name: String,
+    pub win_days: u16,
+    pub lose_days: u16,
+    pub capital: f64,
+    pub results: Vec<StatisticResult>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Statistic {
+    pub bot_statistics: Vec<BotStatistic>,
+}
+
 

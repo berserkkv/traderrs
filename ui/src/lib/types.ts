@@ -1,8 +1,22 @@
 
 
-export type BotResult = {
+export type StatisticResult = {
+  name: string,
   capital: number,
-  time: string,
+  wins: number,
+  losses: number,
+  start_time: string,
+  end_time: string,
 };
 
-export type BotResultMap = Record<string, BotResult[]>;
+export type BotStatistic = {
+  bot_name: string,
+  win_days: number,
+  lose_days: number,
+  capital: number,
+  results: StatisticResult[],
+}
+
+export type Statistic = {
+  bot_statistics: BotStatistic[],
+}

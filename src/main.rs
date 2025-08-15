@@ -16,9 +16,10 @@ use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Min1, Min15, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{BotResult, Container, Order, SystemInfo};
+use crate::models::models::{BotStatistic, Container, Order, Statistic, StatisticResult, SystemInfo};
 use crate::position_manager::PositionManager;
 use crate::repository::Repository;
+use crate::tools::sort_bot_statistics;
 use axum::extract::Path;
 use axum::routing::put;
 use axum::{http::StatusCode, routing::get, Extension, Json, Router};
@@ -27,6 +28,8 @@ use log::info;
 use mime_guess::MimeGuess;
 use rust_embed::RustEmbed;
 use std::collections::HashMap;
+use std::env::home_dir;
+use std::path::PathBuf;
 use std::sync::Arc;
 use sysinfo::System;
 use tokio::net::TcpListener;
@@ -90,7 +93,6 @@ impl Assets {
 async fn main() {
     #[cfg(debug_assertions)]
     init_logger();
-
 
 
     let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
@@ -176,23 +178,50 @@ async fn get_orders_by_id(Path(id): Path<i64>, Extension(order_map): Extension<A
     Json(orders)
 }
 
-async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>){
+async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) {
     for b in bots.iter() {
         b.write().await.reset();
     }
 }
 
-async fn get_bot_statistics(Extension(c): Extension<Arc<Container>>) -> Json<HashMap<String, Vec<BotResult>>>{
+async fn get_bot_statistics(Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
     let bots = c.repository.get_all_bots().unwrap();
     let mut hm = HashMap::new();
 
-    for b in bots {
-        hm.entry(b.name)
+    for b in bots.into_iter() {
+        hm.entry(b.name.clone())
           .or_insert(Vec::new())
-          .push(BotResult{capital: b.capital, time: b.created_at})
+          .push(b)
     }
+    let mut bot_statistics = Vec::with_capacity(hm.len());
+    for (key, value) in hm {
+        let mut win_days = 0;
+        let mut lose_days = 0;
+        let mut capital = 0.0;
+        for res in value.iter() {
+            if res.capital > 100.0 {
+                win_days += 1;
+            } else if res.capital < 100.0 {
+                lose_days += 1;
+            }
 
-    Json(hm)
+            capital += res.capital - 100.0;
+        }
+
+        bot_statistics.push(BotStatistic {
+            bot_name: key,
+            win_days,
+            lose_days,
+            capital,
+
+            results: value,
+        })
+    }
+    sort_bot_statistics(&mut bot_statistics);
+    
+    Json(Statistic {
+        bot_statistics,
+    })
 }
 
 async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffset>>) -> Json<SystemInfo> {
@@ -215,7 +244,7 @@ async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffse
 
 fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>, Arc<Container>) {
     let r = get_repository().expect("Error creating repository");
-    let c = Arc::new(Container{repository: r});
+    let c = Arc::new(Container { repository: r });
 
     let bots = Arc::new(init_bots());
 
@@ -273,12 +302,19 @@ fn init_bots() -> Vec<RwLock<Bot>> {
 }
 
 fn get_repository() -> rusqlite::Result<Repository> {
-    let dp_path = "/tmp/traderrs_database.sqlite";
+    let mut path = PathBuf::from(home_dir().unwrap());
+    path.push("db");
 
-    let path = std::path::Path::new(dp_path);
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).unwrap();
-    }
+    std::fs::create_dir_all(&path).unwrap();
 
-   Repository::new(dp_path)
+    path.push("traders_db.sqlite");
+
+    let dp_path = "/db/traderrs_db.sqlite";
+
+    // let path = std::path::Path::new(dp_path);
+    // if let Some(parent) = path.parent() {
+    //     std::fs::create_dir_all(parent).unwrap();
+    // }
+
+    Repository::new(path)
 }

@@ -2,6 +2,7 @@ use crate::binance_connector::BinanceConnector;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::{Candle, Container, StrategyContainer};
+use crate::tools;
 use crate::tools::wait_until_next_aligned_tick;
 use chrono::{DateTime, FixedOffset, Local, Timelike};
 use log::{debug, error};
@@ -34,7 +35,6 @@ impl EntryManager {
     pub async fn start(&mut self) {
         debug!("Starting Entry Manager...");
         let mut now: DateTime<FixedOffset>;
-        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
         let sleep_time = 60;
         let extra_sleep_time = 3;
 
@@ -45,7 +45,7 @@ impl EntryManager {
         tokio::time::sleep(Duration::from_secs(extra_sleep_time)).await;
 
         loop {
-            now = Local::now().with_timezone(&offset);
+            now = tools::get_date(3);
 
             self.strategy_container.reset();
 

@@ -1,7 +1,8 @@
 use crate::calculator::{calculate_pnl, calculate_roe};
 use crate::enums::{OrderCommand, Timeframe};
 use crate::models::bot::Bot;
-use crate::models::models::Candle;
+use crate::models::models::{BotStatistic, Candle};
+use chrono::{DateTime, FixedOffset, Utc};
 use log::debug;
 use std::cmp::Ordering;
 use std::time::Duration;
@@ -145,6 +146,18 @@ pub fn sort_bots(bots: &mut Vec<Bot>) -> &mut Vec<Bot> {
     bots
 }
 
+pub fn sort_bot_statistics(bot_statisitcs: &mut Vec<BotStatistic>) -> &mut Vec<BotStatistic> {
+    bot_statisitcs.sort_by(|a, b| {
+        cmp_f64(&b.capital, &a.capital)
+          .then(a.bot_name.cmp(&b.bot_name))
+    });
+    bot_statisitcs
+}
+
+pub fn get_date(time_zone: i32) -> DateTime<FixedOffset> {
+    return Utc::now().with_timezone(&FixedOffset::east_opt(time_zone * 3600).unwrap());
+}
+
 fn cmp_f64(a: &f64, b: &f64) -> Ordering {
     match (a.is_nan(), b.is_nan()) {
         (true, true) => Ordering::Equal,
@@ -153,3 +166,4 @@ fn cmp_f64(a: &f64, b: &f64) -> Ordering {
         (false, false) => a.partial_cmp(b).unwrap(),
     }
 }
+
