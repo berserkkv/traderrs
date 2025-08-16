@@ -12,6 +12,9 @@ pub struct Repository {
 impl Repository {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let conn = Connection::open(&db_path)?;
+
+        drop_table(&conn).expect("can not drop");
+
         conn.execute_batch("
                 CREATE TABLE IF NOT EXISTS bots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,15 +28,8 @@ impl Repository {
 
             ")?;
 
-        // let mut stmt = conn.prepare("PRAGMA table_info(bots)")?;
-        // let column_names: Vec<String> = stmt.query_map([], |row|
-        // row.get(1))?
-        //   .collect::<Result<Vec<String>, _>>()?;
-        //
-        // if !column_names.contains(&"wins".to_string()) {
-        //     conn.execute("ALTER TABLE bots ADD COLUMN wins INTEGER NOT NULL", [])?;
-        // }
-        //
+
+
         // if !column_names.contains(&"losses".to_string()) {
         //     conn.execute("ALTER TABLE bots ADD COLUMN losses INTEGER NOT NULL", [])?;
         // }
@@ -93,4 +89,17 @@ impl Repository {
 
         Ok(bots)
     }
+}
+
+#[allow(dead_code)]
+fn drop_table(conn: &Connection) ->Result<()> {
+    let mut stmt = conn.prepare("PRAGMA table_info(bots)")?;
+    let column_names: Vec<String> = stmt.query_map([], |row|
+      row.get(1))?
+      .collect::<Result<Vec<String>, _>>()?;
+
+    if !column_names.contains(&"wins".to_string()) {
+        conn.execute("DROP TABLE IF EXISTS bots", [])?;
+    }
+    Ok(())
 }

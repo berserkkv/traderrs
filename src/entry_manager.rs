@@ -157,11 +157,6 @@ impl EntryManager {
     }
 
     async fn calculate_ta(&mut self) {
-        let m = self.strategy_container.candles_map.clone();
-        for ((timeframe, symbol), candles )in m.iter(){
-            self.strategy_container.set_macd(candles, timeframe, symbol);
-            self.strategy_container.set_ema(candles, timeframe, symbol, 50);
-            self.strategy_container.set_ema(candles, timeframe, symbol, 200);
-        }
+        self.strategy_container.calculate_all();
     }
 }

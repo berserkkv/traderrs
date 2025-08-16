@@ -88,8 +88,18 @@ impl StrategyContainer {
         self.ema.clear();
     }
 
-    pub fn set_macd(&mut self, cadles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol) {
-        let (macd, signal, histogram) =  ta::macd_slice(&tools::get_close_prices(&cadles));
+    pub fn calculate_all(&mut self){
+        // TODO:  must calculate without cloning
+        let m = self.candles_map.clone();
+        for ((timeframe, symbol), candles ) in m.iter() {
+            self.set_macd(candles, timeframe, symbol);
+            self.set_ema(candles, timeframe, symbol, 20);
+            self.set_ema(candles, timeframe, symbol, 50);
+            self.set_ema(candles, timeframe, symbol, 200);
+        }
+    }
+    pub fn set_macd(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol) {
+        let (macd, signal, histogram) =  ta::macd_slice(&tools::get_close_prices(&candles));
         self.macd.insert((*timeframe, *symbol), Macd{macd, signal, histogram});
     }
 

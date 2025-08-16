@@ -1,5 +1,5 @@
 use crate::models::bot::Bot;
-use crate::models::models::{BotStatistic, Container, Order, Statistic, SystemInfo};
+use crate::models::models::{BotStatistic, Container, Order, Statistic, StatisticResult, SystemInfo};
 use crate::tools::sort_bot_statistics;
 use crate::{api, tools};
 use axum::extract::Path;
@@ -126,18 +126,8 @@ pub async fn get_all_bot_statistics(Extension(c): Extension<Arc<Container>>) -> 
     }
     let mut bot_statistics = Vec::with_capacity(hm.len());
     for (key, value) in hm {
-        let mut win_days = 0;
-        let mut lose_days = 0;
-        let mut capital = 0.0;
-        for res in value.iter() {
-            if res.capital > 100.0 {
-                win_days += 1;
-            } else if res.capital < 100.0 {
-                lose_days += 1;
-            }
 
-            capital += res.capital - 100.0;
-        }
+        let (win_days, lose_days, capital) = get_win_loss_capital(&value).await;
 
         bot_statistics.push(BotStatistic {
             bot_name: key,
@@ -158,18 +148,11 @@ pub async fn get_all_bot_statistics(Extension(c): Extension<Arc<Container>>) -> 
 pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
     let vec = c.repository.get_bot(bot_name).unwrap();
     let mut bot_statistics = Vec::with_capacity(vec.len());
-
-    let mut win_days = 0;
-    let mut lose_days = 0;
-    let mut capital = 0.0;
-    for res in vec.iter() {
-        if res.capital > 100.0 {
-            win_days += 1;
-        } else if res.capital < 100.0 {
-            lose_days += 1;
-        }
-        capital += res.capital - 100.0;
+    if vec.is_empty() {
+        return Json(Statistic{bot_statistics})
     }
+
+    let (win_days, lose_days, capital) = get_win_loss_capital(&vec).await;
 
     bot_statistics.push(BotStatistic {
         bot_name: vec[0].name.clone(),
@@ -185,6 +168,22 @@ pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Exte
     Json(Statistic {
         bot_statistics,
     })
+}
+
+async  fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f64) {
+    let mut win_days = 0;
+    let mut lose_days = 0;
+    let mut capital = 0.0;
+    for res in statistics.iter() {
+        if res.capital > 100.0 {
+            win_days += 1;
+        } else if res.capital < 100.0 {
+            lose_days += 1;
+        }
+
+        capital += res.capital - 100.0;
+    }
+    (win_days, lose_days, capital)
 }
 
 
