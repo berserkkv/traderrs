@@ -9,85 +9,25 @@ mod strategy;
 mod ta;
 mod tools;
 mod repository;
+mod api;
 
+use crate::api::get_router;
 use crate::binance_connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
 use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
-use crate::enums::Timeframe::{Min1, Min15, Min5};
+use crate::enums::Timeframe::{Hour1, Min1, Min15, Min30, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{BotStatistic, Container, Order, Statistic, StatisticResult, SystemInfo};
+use crate::models::models::{Container, Order};
 use crate::position_manager::PositionManager;
 use crate::repository::Repository;
-use crate::tools::sort_bot_statistics;
-use axum::extract::Path;
-use axum::routing::put;
-use axum::{http::StatusCode, routing::get, Extension, Json, Router};
-use chrono::{DateTime, FixedOffset, Utc};
 use log::info;
-use mime_guess::MimeGuess;
-use rust_embed::RustEmbed;
 use std::collections::HashMap;
 use std::env::home_dir;
 use std::path::PathBuf;
 use std::sync::Arc;
-use sysinfo::System;
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
-use tower_http::cors::{Any, CorsLayer};
-
-#[derive(RustEmbed)]
-#[folder = "ui/build"]
-struct Assets;
-
-impl Assets {
-    fn get_file(path: &str) -> Option<(Vec<u8>, String)> {
-        Assets::get(path).map(|file| {
-            let mime = MimeGuess::from_path(path)
-              .first_or_octet_stream()
-              .as_ref()
-              .to_owned();
-            (file.data.into_owned(), mime)
-        })
-    }
-
-    fn router() -> Router {
-        let mut router = Router::new();
-
-        for file_path in Assets::iter() {
-            let path_string = file_path.as_ref().to_string();
-            let route_path = format!("/{}", path_string);
-
-            let path_for_closure = path_string.clone();
-
-            let handler = get(move || {
-                let path_for_closure = path_for_closure.clone();
-                async move {
-                    if let Some((content, mime)) = Assets::get_file(&path_for_closure) {
-                        (StatusCode::OK, [("Content-Type", mime)], content)
-                    } else {
-                        (
-                            StatusCode::NOT_FOUND,
-                            [("Content-Type", "text/plain".to_string())],
-                            Vec::new(),
-                        )
-                    }
-                }
-            });
-
-            router = router.route(&route_path, handler.clone());
-
-            // Handle /somePath/ route if the file is /somePath/index.html
-            if path_string.ends_with("/index.html") {
-                let prefix = path_string.strip_suffix("index.html").unwrap();
-                let prefix_route = format!("/{}", prefix);
-                router = router.route(&prefix_route, handler.clone());
-            }
-        }
-
-        router
-    }
-}
 
 #[tokio::main]
 async fn main() {
@@ -95,151 +35,14 @@ async fn main() {
     init_logger();
 
 
-    let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
-    let started_time = Utc::now().with_timezone(&offset);
 
     let (bots, order_map, c) = init_dependencies();
 
-    // Static assets router
-    let assets_router = Assets::router();
-
-    let fallback = get(|| async {
-        if let Some((content, mime)) = Assets::get_file("index.html") {
-            (StatusCode::OK, [("Content-Type", mime)], content)
-        } else {
-            (
-                StatusCode::NOT_FOUND,
-                [("Content-Type", "text/plain".to_string())],
-                "index.html not found".into(),
-            )
-        }
-    });
-
-    let cors = CorsLayer::new()
-      .allow_origin(Any)
-      .allow_methods(Any)
-      .allow_headers(Any);
-
-    let app = assets_router
-      .route("/api/v1/bots", get(get_all_bot))
-      .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
-      .route("/api/v1/bots/reset", put(reset_bots))
-      .route("/api/v1/system", get(get_system_usage))
-      .route("/api/v1/bots/statistics", get(get_bot_statistics))
-      .layer(Extension(bots))
-      .layer(Extension(order_map))
-      .layer(Extension(started_time))
-      .layer(Extension(c))
-      .layer(cors)
-      .fallback(fallback);
+    let app = get_router(bots, order_map, c);
 
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
     info!("listening on port: {}", listener.local_addr().unwrap().port());
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn get_all_bot(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) -> Json<Vec<Bot>> {
-    let mut v = Vec::with_capacity(bots.len());
-    for b in bots.iter() {
-        v.push(b.read().await.clone());
-    }
-
-    tools::sort_bots(&mut v);
-    Json(v)
-}
-
-async fn get_orders_by_id(Path(id): Path<i64>, Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>) -> Json<Vec<Order>> {
-    // let mut orders: Vec<Order> = Vec::new();
-    //
-    // for _ in 0..id {
-    //     orders.push(Order::dummy());
-    // }
-    //
-    // let  x = 1.0;
-    //
-    // for i in 0..orders.len() {
-    //     if i % 2 == 0 {
-    //         orders[i].pnl += x;
-    //     } else {
-    //         orders[i].pnl -= x / 2.0;
-    //     }
-    // }
-    //
-    // Json(orders)
-
-    let mut orders = order_map
-      .read()
-      .await
-      .get(&id)
-      .cloned()
-      .unwrap_or(Vec::new());
-    orders.reverse();
-
-    Json(orders)
-}
-
-async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) {
-    for b in bots.iter() {
-        b.write().await.reset();
-    }
-}
-
-async fn get_bot_statistics(Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
-    let bots = c.repository.get_all_bots().unwrap();
-    let mut hm = HashMap::new();
-
-    for b in bots.into_iter() {
-        hm.entry(b.name.clone())
-          .or_insert(Vec::new())
-          .push(b)
-    }
-    let mut bot_statistics = Vec::with_capacity(hm.len());
-    for (key, value) in hm {
-        let mut win_days = 0;
-        let mut lose_days = 0;
-        let mut capital = 0.0;
-        for res in value.iter() {
-            if res.capital > 100.0 {
-                win_days += 1;
-            } else if res.capital < 100.0 {
-                lose_days += 1;
-            }
-
-            capital += res.capital - 100.0;
-        }
-
-        bot_statistics.push(BotStatistic {
-            bot_name: key,
-            win_days,
-            lose_days,
-            capital,
-
-            results: value,
-        })
-    }
-    sort_bot_statistics(&mut bot_statistics);
-    
-    Json(Statistic {
-        bot_statistics,
-    })
-}
-
-async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffset>>) -> Json<SystemInfo> {
-    let sys = System::new_all();
-    let mut cpu_usage: f32 = 0.0;
-
-    for (_, cpu) in sys.cpus().iter().enumerate() {
-        cpu_usage += cpu.cpu_usage();
-    }
-
-    let total = sys.total_memory();
-    let used_memory = sys.used_memory();
-    let memory_usage = used_memory * 100 / total;
-    Json(SystemInfo {
-        cpu_usage,
-        memory_usage,
-        started_time,
-    })
 }
 
 fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>, Arc<Container>) {
@@ -276,7 +79,7 @@ fn init_bots() -> Vec<RwLock<Bot>> {
     let stop_loss_ratio = 0.4;
     let trailing_stop_activation_point = 0.1;
 
-    let tf = [Min1, Min5, Min15];
+    let tf = [Min1, Min5, Min15, Min30, Hour1];
     let st = ["EmaMacd", "EmaMacd2", "EmaBounce"];
     let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
 
@@ -308,13 +111,6 @@ fn get_repository() -> rusqlite::Result<Repository> {
     std::fs::create_dir_all(&path).unwrap();
 
     path.push("traders_db.sqlite");
-
-    let dp_path = "/db/traderrs_db.sqlite";
-
-    // let path = std::path::Path::new(dp_path);
-    // if let Some(parent) = path.parent() {
-    //     std::fs::create_dir_all(parent).unwrap();
-    // }
 
     Repository::new(path)
 }

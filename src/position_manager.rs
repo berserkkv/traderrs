@@ -4,7 +4,7 @@ use crate::models::bot::Bot;
 use crate::models::models::Order;
 use crate::tools;
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -33,7 +33,7 @@ impl PositionManager {
 
     pub async fn start(&mut self) {
         debug!("Starting Position Manager...");
-        let sleep_time = 2000;
+        let sleep_time = 1000;
         let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(self.bots.len());
         let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
         let mut now: DateTime<FixedOffset>;
@@ -94,11 +94,11 @@ impl PositionManager {
         }
         let mut orders_map = self.orders.write().await;
 
-        for o in orders.iter_mut() {
+        for o in orders.drain(..){
             orders_map
               .entry(o.bot_id)
               .or_insert(Vec::new())
-              .push(o.clone());
+              .push(o);
         }
 
         orders.clear();
@@ -117,20 +117,19 @@ impl PositionManager {
 
             fetch_symbols.insert(bot_read.symbol, {});
         }
-        let semaphore = Arc::new(Semaphore::new(20)); // Limit concurrent tasks
+        let semaphore = Arc::new(Semaphore::new(25)); // Limit concurrent tasks
 
 
-        for smb in fetch_symbols.keys() {
-            let smb_copy = smb.clone();
+        for (smb, _) in fetch_symbols.drain() {
             let connector = Arc::clone(&self.connector);
             let permit = Arc::clone(&semaphore).acquire_owned().await.unwrap();
 
             let handler: JoinHandle<Option<(Symbol, f64)>> = tokio::spawn(async move {
                 let _permit = permit;
-                match connector.get_price(&smb_copy).await {
-                    Ok(price) => Some((smb_copy, price)),
+                match connector.get_price(&smb).await {
+                    Ok(price) => Some((smb, price)),
                     Err(e) => {
-                        error!("Error fetching price for {:?}: {}", smb_copy, e);
+                        error!("Error fetching price for {:?}: {}", smb, e);
                         None
                     }
                 }

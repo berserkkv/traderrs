@@ -1,10 +1,8 @@
-use crate::enums::OrderCommand;
 use crate::enums::OrderCommand::{Long, Short, Wait};
+use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::models::StrategyContainer;
 use crate::strategy::strategy::Strategy;
-use crate::ta::ema;
 use crate::tools::get_close_prices;
-use crate::{ta, tools};
 
 #[derive(Debug, Clone)]
 pub struct EmaMacd {}
@@ -13,33 +11,47 @@ impl Strategy for EmaMacd {
         "EmaMacd"
     }
 
-    fn run(&self, sc: &StrategyContainer, group: &String) -> (OrderCommand, String) {
-        if let Some(candles) = sc.candles_map.get(group) {
-            let closes = tools::get_close_prices(candles);
-            let (macd_line, signal_line, histogram) = ta::macd_slice(&closes);
-            let ema200 = ta::ema(&closes, 200);
+    fn run(&self, sc: &StrategyContainer, timeframe: &Timeframe, symbol: &Symbol) -> (OrderCommand, String) {
+        let option_candles = sc.candles_map.get(&(*timeframe, *symbol));
+        if option_candles.is_none() {
+            return (Wait, "no candles".to_string());
+        }
 
-            let n = macd_line.len();
-            let macd = macd_line[n - 1];
-            let macd_prev = macd_line[n - 2];
-            let signal = signal_line[n - 1];
-            let hist = histogram[n - 1];
-            let price = closes[n - 1];
+        let candles = option_candles.unwrap();
 
-            let info = format!(
-                "p:{:.2}, mc:{:.2}, sg:{:.2}, em:{:.2}",
-                price, macd, signal, ema200
-            );
+        if candles.is_empty() {
+            return (Wait, "no candles".to_string());
+        }
 
-            if macd_prev < 0.0 && macd > 0.0 && hist > 0.0 && price > ema200 {
-                (Long, info)
-            } else if macd_prev > 0.0 && macd < 0.0 && hist < 0.0 && price < ema200 {
-                (Short, info)
-            } else {
-                (Wait, info)
-            }
+        let macd_data = if let Some(val) = sc.get_macd(timeframe, symbol) {
+            val
+        } else { return (Wait, "No macd".to_string()) };
+
+        let ema200 = if let Some(val) = sc.get_ema(timeframe, symbol, 200) {
+            val[val.len() - 1]
+        } else { return (Wait, "No Ema".to_string()) };
+
+        let closes = get_close_prices(candles);
+
+
+        let n = macd_data.macd.len();
+        let macd = macd_data.macd[n - 1];
+        let macd_prev = macd_data.macd[n - 2];
+        let signal = macd_data.signal[n - 1];
+        let hist = macd_data.histogram[n - 1];
+        let price = closes[n - 1];
+
+        let info = format!(
+            "p:{:.2}, mc:{:.2}, sg:{:.2}, em:{:.2}",
+            price, macd, signal, ema200
+        );
+
+        if macd_prev < 0.0 && macd > 0.0 && hist > 0.0 && price > ema200 {
+            (Long, info)
+        } else if macd_prev > 0.0 && macd < 0.0 && hist < 0.0 && price < ema200 {
+            (Short, info)
         } else {
-            (Wait, "candles is empty".to_string())
+            (Wait, info)
         }
     }
 }
@@ -50,33 +62,47 @@ impl Strategy for EmaMacd2 {
     fn name(&self) -> &str {
         "EmaMacd2"
     }
-    fn run(&self, sc: &StrategyContainer, group: &String) -> (OrderCommand, String) {
-        if let Some(candles) = sc.candles_map.get(group) {
-            let closes = tools::get_close_prices(candles);
-            let (macd_line, signal_line, _) = ta::macd_slice(&closes);
-            let ema200 = ta::ema(&closes, 200);
+    fn run(&self, sc: &StrategyContainer, timeframe: &Timeframe, symbol: &Symbol) -> (OrderCommand, String) {
+        let option_candles = sc.candles_map.get(&(*timeframe, *symbol));
+        if option_candles.is_none() {
+            return (Wait, "no candles".to_string());
+        }
 
-            let n = macd_line.len();
-            let macd = macd_line[n - 1];
-            let macd_prev = macd_line[n - 2];
-            let signal = signal_line[n - 1];
-            let signal_prev = signal_line[n - 2];
-            let price = closes[n - 1];
+        let candles = option_candles.unwrap();
 
-            let info = format!(
-                "p:{:.2}, mc:{:.2}, sg:{:.2}, em:{:.2}",
-                price, macd, signal, ema200
-            );
+        if candles.is_empty() {
+            return (Wait, "no candles".to_string());
+        }
 
-            if macd_prev < signal_prev && macd > signal && price > ema200 {
-                (Long, info)
-            } else if macd_prev > signal_prev && macd < signal && price < ema200 {
-                (Short, info)
-            } else {
-                (Wait, info)
-            }
+        let macd_data = if let Some(val) = sc.get_macd(timeframe, symbol) {
+            val
+        } else { return (Wait, "No macd".to_string()) };
+
+        let ema200 = if let Some(val) = sc.get_ema(timeframe, symbol, 200) {
+            val[val.len() - 1]
+        } else { return (Wait, "No Ema".to_string()) };
+
+        let closes = get_close_prices(candles);
+
+        let n = macd_data.macd.len();
+        let macd = macd_data.macd[n - 1];
+        let macd_prev = macd_data.macd[n - 2];
+        let signal = macd_data.signal[n - 1];
+        let signal_prev = macd_data.signal[n - 2];
+        let price = closes[n - 1];
+
+
+        let info = format!(
+            "p:{:.2}, mc:{:.2}, sg:{:.2}, em:{:.2}",
+            price, macd, signal, ema200
+        );
+
+        if macd_prev < signal_prev && macd > signal && price > ema200 {
+            (Long, info)
+        } else if macd_prev > signal_prev && macd < signal && price < ema200 {
+            (Short, info)
         } else {
-            (Wait, "candles is empty".to_string())
+            (Wait, info)
         }
     }
 }
@@ -87,26 +113,42 @@ impl Strategy for EmaBounce {
         "EmaBounce"
     }
 
-    fn run(&self, sc: &StrategyContainer, group: &String) -> (OrderCommand, String) {
-        if let Some(candles) = sc.candles_map.get(group) {
-            let close_price = get_close_prices(candles);
-            let ema50 = ema(&close_price, 50);
-            let ema200 = ema(&close_price, 200);
-            let info = format!("ema50: {:.2}, ema200: {:.2}", ema50, ema200);
-            let price = close_price[close_price.len()-1];
-            let prev_price = close_price[close_price.len()-2];
-
-            if ema50 > ema200 && prev_price < ema50 && price > ema50 {
-                return (Long, info)
-            } else if ema50 < ema200 && prev_price > ema50 && price < ema50 {
-                return (Short, info)
-            }
-
-            (Wait, info)
-        } else {
-            (Wait, "empty candles".to_string())
+    fn run(&self, sc: &StrategyContainer, timeframe: &Timeframe, symbol: &Symbol) -> (OrderCommand, String) {
+        let option_candles = sc.candles_map.get(&(*timeframe, *symbol));
+        if option_candles.is_none() {
+            return (Wait, "no candles".to_string());
         }
 
+        let candles = option_candles.unwrap();
+
+        if candles.is_empty() {
+            return (Wait, "no candles".to_string());
+        }
+
+
+        let ema200 = if let Some(val) = sc.get_ema(timeframe, symbol, 200) {
+            val[val.len() - 1]
+        } else { return (Wait, "No Ema 200".to_string()) };
+
+        let ema50 = if let Some(val) = sc.get_ema(timeframe, symbol, 50) {
+            val[val.len() - 1]
+        } else { return (Wait, "No Ema 50".to_string()) };
+
+        let closes = get_close_prices(candles);
+
+
+        let n = closes.len();
+        let price = closes[n - 1];
+        let info = format!("ema50: {:.2}, ema200: {:.2}", ema50, ema200);
+        let prev_price = closes[n - 2];
+
+        if ema50 > ema200 && prev_price < ema50 && price > ema50 {
+            return (Long, info);
+        } else if ema50 < ema200 && prev_price > ema50 && price < ema50 {
+            return (Short, info)
+        }
+
+        (Wait, info)
     }
 }
 

@@ -316,13 +316,13 @@ impl Bot {
 
     pub fn run_strategy(&self, sc: &StrategyContainer) -> (OrderCommand, String) {
         if let Some(s) = &self.strategy {
-            return s.run(sc, &self.group);
+            return s.run(sc, &self.timeframe, &self.symbol);
         }
 
         (OrderCommand::Wait, "strategy is none".to_string())
     }
 
-    pub fn is_allowed_for_scanning(&self, now: &DateTime<FixedOffset>) -> bool {
+    pub fn is_not_allowed_for_scanning(&self, now: &DateTime<FixedOffset>) -> bool {
         self.is_not_active
           || self.capital < 85.0
           || !is_timeframe_now(self, now.minute())

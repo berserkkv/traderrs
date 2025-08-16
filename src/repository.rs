@@ -49,25 +49,27 @@ impl Repository {
         )
     }
 
-    pub fn get_bot(&self, bot_name: String) -> Result<Option<StatisticResult>> {
+    pub fn get_bot(&self, bot_name: String) -> Result<Vec<StatisticResult>> {
         let conn = Connection::open(&self.path)?;
         let mut stmt = conn.prepare("SELECT  name, capital, wins, losses, start_time, end_time FROM bots WHERE name = ?1")?;
-        let mut rows = stmt.query(params![bot_name])?;
-
-        if let Some(row) = rows.next()? {
+        let bots = stmt.query_map([bot_name], |row| {
             let start_time: String = row.get(4)?;
             let end_time: String = row.get(5)?;
-            Ok(Some(StatisticResult {
+            let s = start_time.parse().unwrap();
+
+            Ok(StatisticResult {
                 name: row.get(0)?,
                 capital: row.get(1)?,
                 wins: row.get(2)?,
                 losses: row.get(3)?,
-                start_time: start_time.parse().unwrap(),
+                start_time: s,
                 end_time: end_time.parse().unwrap(),
-            }))
-        } else {
-            Ok(None)
-        }
+            })
+        })?
+          .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(bots)
+
     }
 
     pub fn get_all_bots(&self) -> Result<Vec<StatisticResult>> {

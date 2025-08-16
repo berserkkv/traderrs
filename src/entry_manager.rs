@@ -4,7 +4,7 @@ use crate::models::bot::Bot;
 use crate::models::models::{Candle, Container, StrategyContainer};
 use crate::tools;
 use crate::tools::wait_until_next_aligned_tick;
-use chrono::{DateTime, FixedOffset, Local, Timelike};
+use chrono::{DateTime, FixedOffset, Timelike};
 use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -53,6 +53,8 @@ impl EntryManager {
 
             self.update_candles(now.minute()).await;
 
+            self.calculate_ta().await;
+
             self.scan_bots(&now).await;
 
             wait_until_next_aligned_tick(Duration::from_secs(sleep_time)).await;
@@ -62,7 +64,7 @@ impl EntryManager {
 
     async fn scan_bots(&mut self, now: &DateTime<FixedOffset>) {
         for bot_lock in self.bots.iter() {
-            if bot_lock.read().await.is_allowed_for_scanning(now) {
+            if bot_lock.read().await.is_not_allowed_for_scanning(now) {
                 continue;
             }
 
@@ -86,6 +88,8 @@ impl EntryManager {
     }
 
     async fn update_bots_data(&mut self) {
+        self.bots_data.clear();
+
         for bot in self.bots.iter() {
             self.bots_data
                 .entry(bot.read().await.timeframe)
@@ -105,7 +109,7 @@ impl EntryManager {
 
     async fn update_candles(&mut self, minute: u32) {
         let connector = Arc::clone(&self.connector);
-        let semaphore = Arc::new(Semaphore::new(20)); // Limit concurrent tasks
+        let semaphore = Arc::new(Semaphore::new(25)); // Limit concurrent tasks
         let mut fetch_tasks = Vec::new();
 
         let timeframes_to_fetch = [
@@ -122,12 +126,12 @@ impl EntryManager {
             if let Some(inner_map) = self.bots_data.get(&tf) {
                 for smb in inner_map.keys() {
                     let smb_copy = smb.clone();
-                    let key = format!("{:?}{:?}", tf, smb);
+                    let key = (tf, *smb);
                     let connector = Arc::clone(&connector);
                     let tf_copy = tf;
                     let permit = Arc::clone(&semaphore).acquire_owned().await.unwrap();
 
-                    let handle: JoinHandle<Option<(String, Vec<Candle>)>> = tokio::spawn(async move {
+                    let handle: JoinHandle<Option<((Timeframe, Symbol), Vec<Candle>)>> = tokio::spawn(async move {
                         let _permit = permit; // Drop when task is done
                         match connector.get_candles(smb_copy, tf_copy, 202).await {
                             Ok(candles) => Some((key, candles)),
@@ -143,12 +147,21 @@ impl EntryManager {
             }
         }
 
-        debug!("min: {}, tasks: {}", minute, fetch_tasks.len());
+        debug!("minute: {}, tasks: {}", minute, fetch_tasks.len());
 
         for task in fetch_tasks {
             if let Ok(Some((key, candles))) = task.await {
                 self.strategy_container.candles_map.insert(key, candles);
             }
+        }
+    }
+
+    async fn calculate_ta(&mut self) {
+        let m = self.strategy_container.candles_map.clone();
+        for ((timeframe, symbol), candles )in m.iter(){
+            self.strategy_container.set_macd(candles, timeframe, symbol);
+            self.strategy_container.set_ema(candles, timeframe, symbol, 50);
+            self.strategy_container.set_ema(candles, timeframe, symbol, 200);
         }
     }
 }

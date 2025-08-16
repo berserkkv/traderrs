@@ -14,6 +14,7 @@ pub fn bollinger_bands_b(prices: &[f64], period: usize) -> f64 {
     (slice.last().unwrap() - lower) / (upper - lower)
 }
 
+#[allow(dead_code)]
 pub fn ema(prices: &[f64], period: usize) -> f64 {
     if prices.len() < period || period == 0 {
         return f64::NAN;

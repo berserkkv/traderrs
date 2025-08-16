@@ -1,10 +1,11 @@
-use crate::enums::{OrderCommand, Symbol};
+use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::repository::Repository;
+use crate::{ta, tools};
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Candle {
     pub close: f64,
@@ -69,23 +70,43 @@ pub struct Container {
 
 #[derive(Debug)]
 pub struct StrategyContainer {
-    pub candles_map: HashMap<String, Vec<Candle>>,
-    pub vec_map: HashMap<String, Vec<f64>>,
-    pub last_map: HashMap<String, f64>,
+    pub candles_map: HashMap<(Timeframe, Symbol), Vec<Candle>>,
+    macd: HashMap<(Timeframe, Symbol), Macd>,
+    ema: HashMap<(Timeframe, Symbol, i32), Vec<f64>>,
 }
 impl StrategyContainer {
     pub fn new() -> Self {
         Self {
             candles_map: HashMap::new(),
-            vec_map: HashMap::new(),
-            last_map: HashMap::new(),
+            macd: HashMap::new(),
+            ema: HashMap::new(),
         }
     }
     pub fn reset(&mut self) {
         self.candles_map.clear();
-        self.vec_map.clear();
-        self.last_map.clear()
+        self.macd.clear();
+        self.ema.clear();
     }
+
+    pub fn set_macd(&mut self, cadles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol) {
+        let (macd, signal, histogram) =  ta::macd_slice(&tools::get_close_prices(&cadles));
+        self.macd.insert((*timeframe, *symbol), Macd{macd, signal, histogram});
+    }
+
+    pub fn get_macd(&self, timeframe: &Timeframe, symbol: &Symbol) -> Option<&Macd> {
+        self.macd.get(&(*timeframe, *symbol))
+    }
+
+    pub fn set_ema(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol, period: i32) {
+        self.ema.insert((*timeframe, *symbol, period), tools::get_close_prices(candles));
+    }
+
+    pub fn get_ema(&self, timeframe: &Timeframe, symbol: &Symbol, period: i32) -> Option<&Vec<f64>> {
+        self.ema.get(&(*timeframe, *symbol, period))
+    }
+
+
+
 }
 
 
@@ -114,3 +135,9 @@ pub struct Statistic {
 }
 
 
+#[derive(Debug, Clone)]
+pub struct Macd {
+    pub macd: Vec<f64>,
+    pub signal: Vec<f64>,
+    pub histogram: Vec<f64>,
+}

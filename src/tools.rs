@@ -57,6 +57,7 @@ pub fn format_timeframe(timeframe: &Timeframe) -> String {
         Timeframe::Min1 => "1m".to_string(),
         Timeframe::Min5 => "5m".to_string(),
         Timeframe::Min15 => "15m".to_string(),
+        Timeframe::Min30 => "30m".to_string(),
         Timeframe::Hour1 => "1h".to_string(),
     }
 }
@@ -81,6 +82,7 @@ pub fn is_timeframe_now(bot: &Bot, minute: u32) -> bool {
         Timeframe::Min1 => true,
         Timeframe::Min5 => minute % 5 == 0,
         Timeframe::Min15 => minute % 15 == 0,
+        Timeframe::Min30 => minute % 30 == 0,
         Timeframe::Hour1 => minute % 60 == 0,
     }
 }
