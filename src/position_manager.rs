@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 #[derive()]
 pub struct PositionManager {
     bots: Arc<Vec<RwLock<Bot>>>,
-    orders: Arc<RwLock<HashMap<i64, Vec<Order>>>>,
+    orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,
     connector: Arc<BinanceConnector>,
 }
 
@@ -22,7 +22,7 @@ impl PositionManager {
     pub fn new(
         bots: Arc<Vec<RwLock<Bot>>>,
         connector: Arc<BinanceConnector>,
-        orders: Arc<RwLock<HashMap<i64, Vec<Order>>>>,
+        orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,
     ) -> Self {
         Self {
             bots,
@@ -96,7 +96,7 @@ impl PositionManager {
 
         for o in orders.drain(..){
             orders_map
-              .entry(o.bot_id)
+              .entry(o.bot_name.clone())
               .or_insert(Vec::new())
               .push(o);
         }

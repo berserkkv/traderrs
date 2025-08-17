@@ -45,14 +45,14 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<i64, Vec<Order>>>>, Arc<Container>) {
+fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<String, Vec<Order>>>>, Arc<Container>) {
     let r = get_repository().expect("Error creating repository");
     let c = Arc::new(Container { repository: r });
 
     let bots = Arc::new(init_bots());
 
     let connector = BinanceConnector::new();
-    let orders_map: Arc<RwLock<HashMap<i64, Vec<Order>>>> = Arc::new(RwLock::new(HashMap::new()));
+    let orders_map: Arc<RwLock<HashMap<String, Vec<Order>>>> = Arc::new(RwLock::new(HashMap::new()));
     let mut position_manager = PositionManager::new(
         Arc::clone(&bots),
         Arc::new(connector.clone()),

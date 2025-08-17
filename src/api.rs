@@ -15,7 +15,7 @@ use sysinfo::System;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
 
-pub fn get_router(bots: Arc<Vec<RwLock<Bot>>>, order_map: Arc<RwLock<HashMap<i64, Vec<Order>>>>, container: Arc<Container>) -> Router {
+pub fn get_router(bots: Arc<Vec<RwLock<Bot>>>, order_map: Arc<RwLock<HashMap<String, Vec<Order>>>>, container: Arc<Container>) -> Router {
     let started_time = tools::get_date(3);
 
     let assets_router = Assets::router();
@@ -79,7 +79,7 @@ pub async fn get_all_bot(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) -> J
     Json(v)
 }
 
-pub async fn get_orders_by_id(Path(id): Path<i64>, Extension(order_map): Extension<Arc<RwLock<HashMap<i64, Vec<Order>>>>>) -> Json<Vec<Order>> {
+pub async fn get_orders_by_id(Path(id): Path<String>, Extension(order_map): Extension<Arc<RwLock<HashMap<String, Vec<Order>>>>>) -> Json<Vec<Order>> {
     // let mut orders: Vec<Order> = Vec::new();
     //
     // for _ in 0..id {

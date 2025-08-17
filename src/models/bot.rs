@@ -276,7 +276,7 @@ impl Bot {
         let closed_order = Order {
             symbol: self.symbol,
             order_type: self.order_type,
-            bot_id: self.id,
+            bot_name: self.name.clone(),
             entry_price: self.order_entry_price,
             exit_price: cur_price,
             quantity: self.order_quantity,

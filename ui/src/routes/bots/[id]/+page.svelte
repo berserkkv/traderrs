@@ -3,9 +3,7 @@
   import Orders from "$lib/component/Orders.svelte";
   import BotStatistics from '$lib/component/BotStatistics.svelte'
 
-  export let data2 = [12, 1, 3, 10];
-    const max = Math.max(...data2);
-    export let data;
+  export let data;
 
     export function parseIsoToDate(isoString: string): string {
         const date = new Date(isoString);
@@ -28,5 +26,5 @@
 </script>
 
 <System/>
-<BotStatistics bot_name="EmaBounce_1m_Sol" />
+<BotStatistics bot_name={data.id} />
 <Orders id={data.id}/>

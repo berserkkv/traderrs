@@ -20,7 +20,7 @@ pub struct Candle {
 pub struct Order {
     pub symbol: Symbol,
     pub order_type: OrderCommand,
-    pub bot_id: i64,
+    pub bot_name: String,
     pub entry_price: f64,
     pub exit_price: f64,
     pub quantity: f64,
@@ -38,7 +38,7 @@ impl Order {
         Self {
             symbol: Symbol::SolUsdt,
             order_type: OrderCommand::Long,
-            bot_id: 1,
+            bot_name: "dummy".to_string(),
             entry_price: 100.0,
             exit_price: 101.0,
             quantity: 1.0,
