@@ -13,8 +13,6 @@ impl Repository {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let conn = Connection::open(&db_path)?;
 
-        drop_table(&conn).expect("can not drop");
-
         conn.execute_batch("
                 CREATE TABLE IF NOT EXISTS bots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

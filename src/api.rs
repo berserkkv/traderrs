@@ -52,18 +52,18 @@ pub fn get_router(bots: Arc<Vec<RwLock<Bot>>>, order_map: Arc<RwLock<HashMap<Str
 }
 
 pub async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedOffset>>) -> Json<SystemInfo> {
-    let sys = System::new_all();
-    let mut cpu_usage: f32 = 0.0;
+    let mut sys = System::new_all();
 
-    for (_, cpu) in sys.cpus().iter().enumerate() {
-        cpu_usage += cpu.cpu_usage();
-    }
+    tokio::time::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL).await;
+
+    sys.refresh_cpu_all();
+
 
     let total = sys.total_memory();
     let used_memory = sys.used_memory();
     let memory_usage = used_memory * 100 / total;
     Json(SystemInfo {
-        cpu_usage,
+        cpu_usage: sys.global_cpu_usage(),
         memory_usage,
         started_time,
     })
