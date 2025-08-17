@@ -35,7 +35,7 @@ impl EntryManager {
     pub async fn start(&mut self) {
         debug!("Starting Entry Manager...");
         let mut now: DateTime<FixedOffset>;
-        let sleep_time = 5;
+        let sleep_time = 60;
         let extra_sleep_time = 3;
 
 
