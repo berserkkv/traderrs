@@ -115,11 +115,15 @@ impl EntryManager {
         let timeframes_to_fetch = [
             Timeframe::Min1,
             Timeframe::Min5,
-            Timeframe::Min15
+            Timeframe::Min15,
+            Timeframe::Min30,
+            Timeframe::Hour1,
         ].into_iter().filter(|tf| {
             *tf == Timeframe::Min1
               || (*tf == Timeframe::Min5 && minute % 5 == 0)
               || (*tf == Timeframe::Min15 && minute % 15 == 0)
+              || (*tf == Timeframe::Min30 && minute % 30 == 0)
+              || (*tf == Timeframe::Hour1 && minute % 60 == 0)
         });
 
         for tf in timeframes_to_fetch {
