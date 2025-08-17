@@ -4,27 +4,47 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::Value;
 use std::error::Error;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 #[derive(Deserialize)]
 struct PriceResponse {
     price: String,
 }
+
 #[derive(Debug, Clone)]
 pub struct BinanceConnector {
     client: Client,
 }
-
 impl BinanceConnector {
     pub fn new() -> Self {
         Self {
             client: Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
-                .build()
-                .unwrap(),
+              .timeout(std::time::Duration::from_secs(10))
+              .build()
+              .unwrap(),
         }
     }
 
-    pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn Error  + Send + Sync>> {
+    pub async fn get_price(&self, symbol: &Symbol) -> Result<f64, Box<dyn Error + Send + Sync>> {
+        // let path = "test.csv";
+        // let file = File::open(path)?;
+        // let reader = io::BufReader::new(file);
+        // let mut index = 0;
+        // let i = get_index();
+        // for s in reader.lines() {
+        //     index += 1;
+        //     if index == 1 { continue; }
+        //     let line = s?;
+        //     let fields: Vec<&str> = line.split(',').collect();
+        //     if i == index {
+        //         let pr = fields[4].parse().unwrap_or(0.0);
+        //         return Ok(pr);
+        //     }
+        //
+        // }
+        //
+        // Ok(0.0)
+
         let url = format!(
             "https://fapi.binance.com/fapi/v2/ticker/price?symbol={}",
             symbol.to_string()
@@ -43,6 +63,33 @@ impl BinanceConnector {
         timeframe: Timeframe,
         limit: i32,
     ) -> Result<Vec<Candle>, Box<dyn Error + Send + Sync>> {
+        // let path = "test.csv";
+        // let file = File::open(path)?;
+        // let reader = io::BufReader::new(file);
+        // let mut index = 0;
+        // let i = get_index();
+        // let mut v = Vec::new();
+        // for s in reader.lines() {
+        //     index += 1;
+        //     if index == 1 { continue; }
+        //     let line = s?;
+        //     let fields: Vec<&str> = line.split(',').collect();
+        //     v.push(Candle {
+        //         close: fields[4].parse().unwrap_or(0.0),
+        //         open: 0.0,
+        //         high: 0.0,
+        //         low: 0.0,
+        //         volume: 0.0,
+        //         open_time: 0,
+        //     });
+        //     if i == index {
+        //         return Ok(v);
+        //     }
+        // }
+        //
+        // Ok(v)
+
+
         let url = format!(
             "https://fapi.binance.com/fapi/v1/klines?symbol={}&interval={}&limit={}",
             symbol.to_string(),
@@ -80,4 +127,11 @@ impl BinanceConnector {
 
         Ok(candles)
     }
+}
+
+
+static BOT_ID_COUNTER: AtomicI64 = AtomicI64::new(201);
+
+fn get_index() -> i64 {
+    BOT_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
 }

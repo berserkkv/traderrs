@@ -1,4 +1,4 @@
-use crate::binance_connector::BinanceConnector;
+use crate::connector::BinanceConnector;
 use crate::enums::Symbol;
 use crate::models::bot::Bot;
 use crate::models::models::Order;
@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tokio::sync::{RwLock, Semaphore};
 use tokio::task::JoinHandle;
 
-#[derive()]
+
 pub struct PositionManager {
     bots: Arc<Vec<RwLock<Bot>>>,
     orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,

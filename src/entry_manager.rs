@@ -1,4 +1,4 @@
-use crate::binance_connector::BinanceConnector;
+use crate::connector::BinanceConnector;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::{Candle, Container, StrategyContainer};
@@ -35,7 +35,7 @@ impl EntryManager {
     pub async fn start(&mut self) {
         debug!("Starting Entry Manager...");
         let mut now: DateTime<FixedOffset>;
-        let sleep_time = 60;
+        let sleep_time = 5;
         let extra_sleep_time = 3;
 
 

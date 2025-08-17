@@ -1,4 +1,4 @@
-mod binance_connector;
+mod connector;
 mod calculator;
 mod entry_manager;
 mod enums;
@@ -12,7 +12,7 @@ mod repository;
 mod api;
 
 use crate::api::get_router;
-use crate::binance_connector::BinanceConnector;
+use crate::connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
 use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Hour1, Min1, Min15, Min30, Min5};
@@ -81,7 +81,7 @@ fn init_bots() -> Vec<RwLock<Bot>> {
 
     let tf = [Min1, Min5, Min15, Min30, Hour1];
     let st = ["EmaMacd", "EmaMacd2", "EmaBounce"];
-    let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
+    let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt,];
 
     for t in tf.iter() {
         for s in st.iter() {

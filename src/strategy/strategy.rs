@@ -23,6 +23,6 @@ pub struct DummyStrategy;
 impl Strategy for DummyStrategy {
     fn name(&self) -> &str { "dummy" }
     fn run(&self, _sc: &StrategyContainer, _timeframe: &Timeframe, _symbol: &Symbol) -> (OrderCommand, String) {
-        (OrderCommand::Wait, "dummy strategy".to_string())
+        (OrderCommand::Long, "dummy strategy".to_string())
     }
 }

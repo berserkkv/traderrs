@@ -53,7 +53,7 @@
             <p>{s.bot_name}</p>
           </td>
           <td class='table-cell {tools.textUpOrDown(s.capital)}'>
-            {s.capital}
+            {s.capital.toFixed(2)}
           </td>
           <td class="table-cell">
             <span class='{tools.textUpOrDown(1)}'>{s.win_days}</span>/<span

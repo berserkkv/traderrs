@@ -1,8 +1,8 @@
-use crate::binance_connector::BinanceConnector;
 use crate::calculator::{
     calculate_buy_quantity, calculate_maker_fee, calculate_pnl, calculate_roe, calculate_stop_loss,
     calculate_take_profit, calculate_taker_fee,
 };
+use crate::connector::BinanceConnector;
 use crate::enums::Symbol::SolUsdt;
 use crate::enums::Timeframe::Min1;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
@@ -323,10 +323,7 @@ impl Bot {
     }
 
     pub fn is_not_allowed_for_scanning(&self, now: &DateTime<FixedOffset>) -> bool {
-        self.is_not_active
-          || self.capital < 85.0
-          || !is_timeframe_now(self, now.minute())
-          || self.in_pos
+        self.is_not_active || self.capital < 85.0 || !is_timeframe_now(self, now.minute()) || self.in_pos
     }
 }
 

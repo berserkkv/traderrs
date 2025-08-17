@@ -80,23 +80,6 @@ pub async fn get_all_bot(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) -> J
 }
 
 pub async fn get_orders_by_id(Path(id): Path<String>, Extension(order_map): Extension<Arc<RwLock<HashMap<String, Vec<Order>>>>>) -> Json<Vec<Order>> {
-    // let mut orders: Vec<Order> = Vec::new();
-    //
-    // for _ in 0..id {
-    //     orders.push(Order::dummy());
-    // }
-    //
-    // let  x = 1.0;
-    //
-    // for i in 0..orders.len() {
-    //     if i % 2 == 0 {
-    //         orders[i].pnl += x;
-    //     } else {
-    //         orders[i].pnl -= x / 2.0;
-    //     }
-    // }
-    //
-    // Json(orders)
 
     let mut orders = order_map
       .read()
@@ -126,7 +109,6 @@ pub async fn get_all_bot_statistics(Extension(c): Extension<Arc<Container>>) -> 
     }
     let mut bot_statistics = Vec::with_capacity(hm.len());
     for (key, value) in hm {
-
         let (win_days, lose_days, capital) = get_win_loss_capital(&value).await;
 
         bot_statistics.push(BotStatistic {
@@ -149,7 +131,7 @@ pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Exte
     let vec = c.repository.get_bot(bot_name).unwrap();
     let mut bot_statistics = Vec::with_capacity(vec.len());
     if vec.is_empty() {
-        return Json(Statistic{bot_statistics})
+        return Json(Statistic { bot_statistics });
     }
 
     let (win_days, lose_days, capital) = get_win_loss_capital(&vec).await;
@@ -170,7 +152,7 @@ pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Exte
     })
 }
 
-async  fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f64) {
+async fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f64) {
     let mut win_days = 0;
     let mut lose_days = 0;
     let mut capital = 0.0;

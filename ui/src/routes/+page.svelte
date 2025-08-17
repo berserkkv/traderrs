@@ -68,7 +68,7 @@
       <div>
         <div class="flex justify-between items-start">
           <div class=" text-sm">
-            <span class=""><a href="/bots/{b.id}">{b.name}</a></span>
+            <span class=""><a href="/bots/{b.name}">{b.name}</a></span>
             <span class="ml-1 text-xs font-semibold">
               <span class={textUpOrDown(1)}>{b.wins}</span>/<span class={textUpOrDown(-1)}>{b.losses}</span>
               <span>({calculateWinPercentage(b.wins, b.wins + b.losses).toFixed(1)}%)</span>

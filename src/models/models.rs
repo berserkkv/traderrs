@@ -60,19 +60,17 @@ pub struct SystemInfo {
 }
 
 
-
 #[derive(Debug, Clone)]
 pub struct Container {
     pub repository: Repository,
 }
 
 
-
 #[derive(Debug)]
 pub struct StrategyContainer {
     pub candles_map: HashMap<(Timeframe, Symbol), Vec<Candle>>,
     macd: HashMap<(Timeframe, Symbol), Macd>,
-    ema: HashMap<(Timeframe, Symbol, i32), Vec<f64>>,
+    ema: HashMap<(Timeframe, Symbol, usize), Vec<f64>>,
 }
 impl StrategyContainer {
     pub fn new() -> Self {
@@ -88,10 +86,10 @@ impl StrategyContainer {
         self.ema.clear();
     }
 
-    pub fn calculate_all(&mut self){
+    pub fn calculate_all(&mut self) {
         // TODO:  must calculate without cloning
         let m = self.candles_map.clone();
-        for ((timeframe, symbol), candles ) in m.iter() {
+        for ((timeframe, symbol), candles) in m.iter() {
             self.set_macd(candles, timeframe, symbol);
             self.set_ema(candles, timeframe, symbol, 20);
             self.set_ema(candles, timeframe, symbol, 50);
@@ -99,24 +97,21 @@ impl StrategyContainer {
         }
     }
     pub fn set_macd(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol) {
-        let (macd, signal, histogram) =  ta::macd_slice(&tools::get_close_prices(&candles));
-        self.macd.insert((*timeframe, *symbol), Macd{macd, signal, histogram});
+        let (macd, signal, histogram) = ta::macd_slice(&tools::get_close_prices(&candles));
+        self.macd.insert((*timeframe, *symbol), Macd { macd, signal, histogram });
     }
 
     pub fn get_macd(&self, timeframe: &Timeframe, symbol: &Symbol) -> Option<&Macd> {
         self.macd.get(&(*timeframe, *symbol))
     }
 
-    pub fn set_ema(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol, period: i32) {
-        self.ema.insert((*timeframe, *symbol, period), tools::get_close_prices(candles));
+    pub fn set_ema(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol, period: usize) {
+        self.ema.insert((*timeframe, *symbol, period), ta::ema_slice(&tools::get_close_prices(candles), period));
     }
 
-    pub fn get_ema(&self, timeframe: &Timeframe, symbol: &Symbol, period: i32) -> Option<&Vec<f64>> {
+    pub fn get_ema(&self, timeframe: &Timeframe, symbol: &Symbol, period: usize) -> Option<&Vec<f64>> {
         self.ema.get(&(*timeframe, *symbol, period))
     }
-
-
-
 }
 
 
@@ -131,7 +126,7 @@ pub struct StatisticResult {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct BotStatistic{
+pub struct BotStatistic {
     pub bot_name: String,
     pub win_days: u16,
     pub lose_days: u16,

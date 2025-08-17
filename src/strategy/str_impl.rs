@@ -45,7 +45,7 @@ impl Strategy for EmaMacd {
             "p:{:.2}, mc:{:.2}, sg:{:.2}, em:{:.2}",
             price, macd, signal, ema200
         );
-
+        
         if macd_prev < 0.0 && macd > 0.0 && hist > 0.0 && price > ema200 {
             (Long, info)
         } else if macd_prev > 0.0 && macd < 0.0 && hist < 0.0 && price < ema200 {

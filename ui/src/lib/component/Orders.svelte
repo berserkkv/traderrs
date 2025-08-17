@@ -1,11 +1,11 @@
 <script lang="ts">
-    import {onMount} from "svelte";
-    import {writable} from "svelte/store";
-    import {API_BASE} from "$lib/config";
-    import {bgUpOrDown, parseIsoToDate, textUpOrDown} from "$lib/tools.js";
-    import Chart from "$lib/component/Chart.svelte";
+  import {onMount} from "svelte";
+  import {writable} from "svelte/store";
+  import {API_BASE} from "$lib/config";
+  import {bgUpOrDown, parseIsoToDate, textUpOrDown} from "$lib/tools.js";
+  import Chart from "$lib/component/Chart.svelte";
 
-    export let id;
+  export let id;
 
     type Order = {
         bot_id: number;
@@ -32,10 +32,11 @@
             if (!res.ok) throw new Error(`failed to load system info: ${res.status}`);
 
             const json = await res.json() as unknown;
-
             if (typeof json === 'object' &&
                 json != null) {
                 data.set(json as Order[])
+
+
             } else {
                 throw new Error("invalid api response format")
             }
@@ -74,7 +75,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {#each $data.slice().reverse() as o}
+                    {#each $data.slice() as o}
                         <tr>
                             <td class="border-none p-1 {bgUpOrDown(o.order_type === 'Long' ? 1 : -1)}"></td>
                             <td class="my-cell">{o.entry_price.toFixed(2)}</td>
