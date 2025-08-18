@@ -34,8 +34,6 @@ async fn main() {
     #[cfg(debug_assertions)]
     init_logger();
 
-
-
     let (bots, order_map, c) = init_dependencies();
 
     let app = get_router(bots, order_map, c);

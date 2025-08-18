@@ -87,26 +87,21 @@ impl StrategyContainer {
     }
 
     pub fn calculate_all(&mut self) {
-        // TODO:  must calculate without cloning
-        let m = self.candles_map.clone();
-        for ((timeframe, symbol), candles) in m.iter() {
-            self.set_macd(candles, timeframe, symbol);
-            self.set_ema(candles, timeframe, symbol, 20);
-            self.set_ema(candles, timeframe, symbol, 50);
-            self.set_ema(candles, timeframe, symbol, 200);
+        let mut macd_map = HashMap::new();
+        let mut ema_map = HashMap::new();
+        for ((timeframe, symbol), candles) in self.candles_map.iter() {
+            let (macd, signal, histogram) = ta::macd_slice(&tools::get_close_prices(&candles));
+            macd_map.insert((*timeframe, *symbol), Macd { macd, signal, histogram });
+            ema_map.insert((*timeframe, *symbol, 20), ta::ema_slice(&tools::get_close_prices(candles), 20));
+            ema_map.insert((*timeframe, *symbol, 50), ta::ema_slice(&tools::get_close_prices(candles), 50));
+            ema_map.insert((*timeframe, *symbol, 200), ta::ema_slice(&tools::get_close_prices(candles), 200));
         }
-    }
-    pub fn set_macd(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol) {
-        let (macd, signal, histogram) = ta::macd_slice(&tools::get_close_prices(&candles));
-        self.macd.insert((*timeframe, *symbol), Macd { macd, signal, histogram });
+        self.macd = macd_map;
+        self.ema = ema_map;
     }
 
     pub fn get_macd(&self, timeframe: &Timeframe, symbol: &Symbol) -> Option<&Macd> {
         self.macd.get(&(*timeframe, *symbol))
-    }
-
-    pub fn set_ema(&mut self, candles: &Vec<Candle>, timeframe: &Timeframe, symbol: &Symbol, period: usize) {
-        self.ema.insert((*timeframe, *symbol, period), ta::ema_slice(&tools::get_close_prices(candles), period));
     }
 
     pub fn get_ema(&self, timeframe: &Timeframe, symbol: &Symbol, period: usize) -> Option<&Vec<f64>> {
