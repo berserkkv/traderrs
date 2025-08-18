@@ -18,10 +18,11 @@ use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
 use crate::enums::Timeframe::{Hour1, Min1, Min15, Min30, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
-use crate::models::models::{Container, Order};
+use crate::models::models::{Container, Order, SharedVec};
 use crate::position_manager::PositionManager;
 use crate::repository::Repository;
 use log::info;
+use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::env::home_dir;
 use std::path::PathBuf;
@@ -43,20 +44,20 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<String, Vec<Order>>>>, Arc<Container>) {
+fn init_dependencies() -> (Arc<SharedVec<Bot>>, Arc<RwLock<HashMap<String, Vec<Order>>>>, Arc<Container>) {
     let r = get_repository().expect("Error creating repository");
     let c = Arc::new(Container { repository: r });
 
-    let bots = Arc::new(init_bots());
+    let bots = Arc::new(SharedVec(UnsafeCell::new(init_bots())));
 
     let connector = BinanceConnector::new();
     let orders_map: Arc<RwLock<HashMap<String, Vec<Order>>>> = Arc::new(RwLock::new(HashMap::new()));
     let mut position_manager = PositionManager::new(
-        Arc::clone(&bots),
+        bots.clone(),
         Arc::new(connector.clone()),
         Arc::clone(&orders_map),
     );
-    let mut entry_manager = EntryManager::new(Arc::clone(&bots), Arc::new(connector), Arc::clone(&c));
+    let mut entry_manager = EntryManager::new(bots.clone(), Arc::new(connector), Arc::clone(&c));
 
     tokio::spawn(async move {
         position_manager.start().await;
@@ -69,7 +70,7 @@ fn init_dependencies() -> (Arc<Vec<RwLock<Bot>>>, Arc<RwLock<HashMap<String, Vec
     (bots, orders_map, c)
 }
 
-fn init_bots() -> Vec<RwLock<Bot>> {
+fn init_bots() -> Vec<Bot> {
     let mut bots = Vec::new();
     let capital = 100.0;
     let leverage = 10.0;
@@ -94,7 +95,7 @@ fn init_bots() -> Vec<RwLock<Bot>> {
                     stop_loss_ratio,
                     trailing_stop_activation_point,
                 );
-                bots.push(RwLock::new(bot));
+                bots.push(bot);
             }
         }
     }

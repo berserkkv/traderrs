@@ -3,6 +3,7 @@ use crate::repository::Repository;
 use crate::{ta, tools};
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
+use std::cell::UnsafeCell;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -141,3 +142,9 @@ pub struct Macd {
     pub signal: Vec<f64>,
     pub histogram: Vec<f64>,
 }
+
+
+pub struct SharedVec<T>(pub UnsafeCell<Vec<T>>);
+
+unsafe impl<T> Send for SharedVec<T> {}
+unsafe impl<T> Sync for SharedVec<T> {}

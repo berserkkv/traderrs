@@ -1,5 +1,5 @@
 use crate::models::bot::Bot;
-use crate::models::models::{BotStatistic, Container, Order, Statistic, StatisticResult, SystemInfo};
+use crate::models::models::{BotStatistic, Container, Order, SharedVec, Statistic, StatisticResult, SystemInfo};
 use crate::tools::sort_bot_statistics;
 use crate::{api, tools};
 use axum::extract::Path;
@@ -15,7 +15,7 @@ use sysinfo::System;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
 
-pub fn get_router(bots: Arc<Vec<RwLock<Bot>>>, order_map: Arc<RwLock<HashMap<String, Vec<Order>>>>, container: Arc<Container>) -> Router {
+pub fn get_router(bots: Arc<SharedVec<Bot>>, order_map: Arc<RwLock<HashMap<String, Vec<Order>>>>, container: Arc<Container>) -> Router {
     let started_time = tools::get_date(3);
 
     let assets_router = Assets::router();
@@ -69,18 +69,20 @@ pub async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedO
     })
 }
 
-pub async fn get_all_bot(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) -> Json<Vec<Bot>> {
-    let mut v = Vec::with_capacity(bots.len());
-    for b in bots.iter() {
-        v.push(b.read().await.clone());
-    }
+pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Json<Vec<Bot>> {
+    unsafe {
+        let bots = &mut *bots.0.get();
+        let mut v = Vec::with_capacity(bots.len());
+        for b in bots.iter() {
+            v.push(b.clone());
+        }
 
-    tools::sort_bots(&mut v);
-    Json(v)
+        tools::sort_bots(&mut v);
+        Json(v)
+    }
 }
 
 pub async fn get_orders_by_id(Path(id): Path<String>, Extension(order_map): Extension<Arc<RwLock<HashMap<String, Vec<Order>>>>>) -> Json<Vec<Order>> {
-
     let mut orders = order_map
       .read()
       .await
@@ -92,9 +94,12 @@ pub async fn get_orders_by_id(Path(id): Path<String>, Extension(order_map): Exte
     Json(orders)
 }
 
-pub async fn reset_bots(Extension(bots): Extension<Arc<Vec<RwLock<Bot>>>>) {
-    for b in bots.iter() {
-        b.write().await.reset();
+pub async fn reset_bots(Extension(bots): Extension<Arc<SharedVec<Bot>>>) {
+    unsafe {
+        let bots = &mut *bots.0.get();
+        for b in bots.iter_mut() {
+            b.reset();
+        }
     }
 }
 

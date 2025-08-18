@@ -1,7 +1,7 @@
 use crate::connector::BinanceConnector;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
-use crate::models::models::{Candle, Container, StrategyContainer};
+use crate::models::models::{Candle, Container, SharedVec, StrategyContainer};
 use crate::tools;
 use crate::tools::wait_until_next_aligned_tick;
 use chrono::{DateTime, FixedOffset, Timelike};
@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 
 #[derive()]
 pub struct EntryManager {
-    bots: Arc<Vec<RwLock<Bot>>>,
+    bots: Arc<SharedVec<Bot>>,
     bots_data: HashMap<Timeframe, HashMap<Symbol, ()>>,
     connector: Arc<BinanceConnector>,
     c: Arc<Container>,
@@ -22,7 +22,7 @@ pub struct EntryManager {
 }
 
 impl EntryManager {
-    pub fn new(bots: Arc<Vec<RwLock<Bot>>>, connector: Arc<BinanceConnector>, c: Arc<Container>) -> Self {
+    pub fn new(bots: Arc<SharedVec<Bot>>, connector: Arc<BinanceConnector>, c: Arc<Container>) -> Self {
         Self {
             bots,
             bots_data: HashMap::new(),
@@ -63,25 +63,29 @@ impl EntryManager {
     }
 
     async fn scan_bots(&mut self, now: &DateTime<FixedOffset>) {
-        for bot_lock in self.bots.iter() {
-            if bot_lock.read().await.is_not_allowed_for_scanning(now) {
-                continue;
-            }
+        unsafe {
+            let bots = &mut *self.bots.0.get();
 
-            bot_lock.write().await.last_scanned = *now;
-
-            let (command, strategy_info) = bot_lock.read().await.run_strategy(&self.strategy_container);
-
-            debug!("command: {:?}, info: {}", command, strategy_info);
-
-            match command {
-                OrderCommand::Long | OrderCommand::Short => {
-                    if let Err(e) = bot_lock.write().await.open_position(&command, &self.connector).await {
-                        error!("Failed to open position for {}: {}", bot_lock.read().await.name, e);
-                    }
+            for bot in bots.iter_mut() {
+                if bot.is_not_allowed_for_scanning(now) {
+                    continue;
                 }
-                _ => {
-                    bot_lock.write().await.log = strategy_info;
+
+                bot.last_scanned = *now;
+
+                let (command, strategy_info) = bot.run_strategy(&self.strategy_container);
+
+                debug!("command: {:?}, info: {}", command, strategy_info);
+
+                match command {
+                    OrderCommand::Long | OrderCommand::Short => {
+                        if let Err(e) = bot.open_position(&command, &self.connector).await {
+                            error!("Failed to open position for {}: {}", bot.name, e);
+                        }
+                    }
+                    _ => {
+                        bot.log = strategy_info;
+                    }
                 }
             }
         }
@@ -90,19 +94,25 @@ impl EntryManager {
     async fn update_bots_data(&mut self) {
         self.bots_data.clear();
 
-        for bot in self.bots.iter() {
-            self.bots_data
-                .entry(bot.read().await.timeframe)
-                .or_insert(HashMap::new())
-                .insert(bot.read().await.symbol, ());
+        unsafe {
+            let bots = &mut *self.bots.0.get();
+            for bot in bots.iter() {
+                self.bots_data
+                    .entry(bot.timeframe)
+                    .or_insert(HashMap::new())
+                    .insert(bot.symbol, ());
+            }
         }
     }
 
     async fn save_and_reset_bots(&mut self, now: &DateTime<FixedOffset>) {
         if now.hour() == 0 && now.minute() == 0 {
-            for b in self.bots.iter() {
-                let _ = self.c.repository.create_bot(b.read().await).expect("");
-                b.write().await.reset();
+            unsafe {
+                let bots = &mut *self.bots.0.get();
+                for b in bots.iter_mut() {
+                    let _ = self.c.repository.create_bot(b).expect("");
+                    b.reset();
+                }
             }
         }
     }

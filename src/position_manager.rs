@@ -1,26 +1,27 @@
 use crate::connector::BinanceConnector;
 use crate::enums::Symbol;
 use crate::models::bot::Bot;
-use crate::models::models::Order;
+use crate::models::models::{Order, SharedVec};
 use crate::tools;
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
 use chrono::{DateTime, FixedOffset};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::io::AsyncWriteExt;
 use tokio::sync::{RwLock, Semaphore};
 use tokio::task::JoinHandle;
 
 
 pub struct PositionManager {
-    bots: Arc<Vec<RwLock<Bot>>>,
+    bots: Arc<SharedVec<Bot>>,
     orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,
     connector: Arc<BinanceConnector>,
 }
 
 impl PositionManager {
     pub fn new(
-        bots: Arc<Vec<RwLock<Bot>>>,
+        bots: Arc<SharedVec<Bot>>,
         connector: Arc<BinanceConnector>,
         orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,
     ) -> Self {
@@ -33,23 +34,26 @@ impl PositionManager {
 
     pub async fn start(&mut self) {
         debug!("Starting Position Manager...");
-        let sleep_time = 1500;
-        let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(self.bots.len());
-        let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
-        let mut now: DateTime<FixedOffset>;
+        unsafe {
+            let bots = &mut *self.bots.0.get();
+            let sleep_time = 1500;
+            let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(bots.len());
+            let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
+            let mut now: DateTime<FixedOffset>;
 
-        let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
-        let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
-        loop {
-            now = tools::get_date(3);
+            let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
+            let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
+            loop {
+                now = tools::get_date(3);
 
-            self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
+                self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
 
-            self.scan_bots(&prices, &mut to_close, now).await;
+                self.scan_bots(&prices, &mut to_close, now).await;
 
-            self.handle_closed_position(&mut to_close).await;
-            
-            tokio::time::sleep(std::time::Duration::from_millis(sleep_time)).await;
+                self.handle_closed_position(&mut to_close).await;
+
+                tokio::time::sleep(std::time::Duration::from_millis(sleep_time)).await;
+            }
         }
     }
 
@@ -57,33 +61,29 @@ impl PositionManager {
         if prices.is_empty() {
             return;
         }
+        unsafe {
+            let bots = &mut *self.bots.0.get();
 
-        for bot in self.bots.iter() {
-            let cur_price: f64;
-            let should_close: bool;
-            {
-                let bot_read = bot.read().await;
-                if !bot_read.in_pos {
+            for bot in bots.iter_mut() {
+                if !bot.in_pos {
                     continue;
                 }
-                if let Some(&price) = prices.get(&bot_read.symbol) {
-                    should_close = should_close_position(price, &bot_read);
-                    cur_price = price;
+
+
+                if let Some(&price) = prices.get(&bot.symbol) {
+                    if should_close_position(price, &bot) {
+                        if let Ok(order) = bot.close_position(price) {
+                            to_close.push(order);
+                        }
+                    } else {
+                        update_pnl_and_roe(bot, price);
+                        shift_stop_loss(bot);
+                        bot.last_scanned = now;
+                    }
                 } else {
                     warn!("Price missing");
                     continue;
                 }
-            }
-
-            if should_close {
-                if let Ok(order) = bot.write().await.close_position(cur_price) {
-                    to_close.push(order);
-                }
-            } else {
-                let mut b = bot.write().await;
-                update_pnl_and_roe(&mut b, cur_price);
-                shift_stop_loss(&mut b);
-                b.last_scanned = now;
             }
         }
     }
@@ -94,7 +94,7 @@ impl PositionManager {
         }
         let mut orders_map = self.orders.write().await;
 
-        for o in orders.drain(..){
+        for o in orders.drain(..) {
             orders_map
               .entry(o.bot_name.clone())
               .or_insert(Vec::new())
@@ -109,14 +109,16 @@ impl PositionManager {
         fetch_symbols.clear();
         prices.clear();
 
-        for bot in self.bots.iter() {
-            let bot_read = bot.read().await;
-            if !bot_read.in_pos {
-                continue;
+        unsafe {
+            let bots = &mut *self.bots.0.get();
+            for bot in bots.iter(){
+                if !bot.in_pos {
+                    continue;
+                }
+                fetch_symbols.insert(bot.symbol, {});
             }
-
-            fetch_symbols.insert(bot_read.symbol, {});
         }
+
         let semaphore = Arc::new(Semaphore::new(25)); // Limit concurrent tasks
 
 

@@ -3,7 +3,6 @@ use crate::models::models::StatisticResult;
 use crate::tools;
 use rusqlite::{params, Connection, Result};
 use std::path::PathBuf;
-use tokio::sync::RwLockReadGuard;
 
 #[derive(Debug, Clone)]
 pub struct Repository {
@@ -34,7 +33,7 @@ impl Repository {
         Ok(Repository { path: db_path })
     }
 
-    pub fn create_bot(&self, bot: RwLockReadGuard<Bot>) -> Result<usize> {
+    pub fn create_bot(&self, bot: &mut Bot) -> Result<usize> {
         let conn = Connection::open(&self.path)?;
         let now = tools::get_date(3);
         conn.execute(
