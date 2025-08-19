@@ -34,7 +34,7 @@ impl PositionManager {
     pub async fn start(&mut self) {
         debug!("Starting Position Manager...");
         let sleep_time = 1500;
-        let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(2000);
+        let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(20);
         let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
         let mut now: DateTime<FixedOffset>;
 

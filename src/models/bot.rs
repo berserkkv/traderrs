@@ -225,7 +225,6 @@ impl Bot {
         self.order_capital = capital;
         self.order_quantity = calculate_buy_quantity(price, self.order_capital_with_leverage);
         self.order_entry_price = price;
-        self.in_pos = true;
         self.order_created_at = now;
         self.order_scanned_at = now;
         self.order_fee = fee;
@@ -240,6 +239,7 @@ impl Bot {
             self.order_quantity,
         );
 
+        self.in_pos = true;
         Ok(())
     }
 
@@ -289,7 +289,7 @@ impl Bot {
         };
 
         // reset position state
-        self.in_pos = false;
+
         self.order_entry_price = 0.0;
         self.order_stop_loss = 0.0;
         self.order_take_profit = 0.0;
@@ -303,6 +303,11 @@ impl Bot {
         self.pnl = 0.0;
         self.roe = 0.0;
 
+        if self.capital <= 85.0 {
+            self.is_not_active = true;
+        }
+
+        self.in_pos = false;
         Ok(closed_order)
     }
 
