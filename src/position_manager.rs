@@ -8,7 +8,6 @@ use chrono::{DateTime, FixedOffset};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::io::AsyncWriteExt;
 use tokio::sync::{RwLock, Semaphore};
 use tokio::task::JoinHandle;
 
@@ -34,26 +33,23 @@ impl PositionManager {
 
     pub async fn start(&mut self) {
         debug!("Starting Position Manager...");
-        unsafe {
-            let bots = &mut *self.bots.0.get();
-            let sleep_time = 1500;
-            let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(bots.len());
-            let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
-            let mut now: DateTime<FixedOffset>;
+        let sleep_time = 1500;
+        let mut prices: HashMap<Symbol, f64> = HashMap::with_capacity(2000);
+        let mut to_close: Vec<Order> = Vec::with_capacity(prices.len());
+        let mut now: DateTime<FixedOffset>;
 
-            let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
-            let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
-            loop {
-                now = tools::get_date(3);
+        let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
+        let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
+        loop {
+            now = tools::get_date(3);
 
-                self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
+            self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
 
-                self.scan_bots(&prices, &mut to_close, now).await;
+            self.scan_bots(&prices, &mut to_close, now).await;
 
-                self.handle_closed_position(&mut to_close).await;
+            self.handle_closed_position(&mut to_close).await;
 
-                tokio::time::sleep(std::time::Duration::from_millis(sleep_time)).await;
-            }
+            tokio::time::sleep(std::time::Duration::from_millis(sleep_time)).await;
         }
     }
 
@@ -81,6 +77,7 @@ impl PositionManager {
                         bot.last_scanned = now;
                     }
                 } else {
+                    bot.log = "price is missing".to_string();
                     warn!("Price missing");
                     continue;
                 }
@@ -111,7 +108,7 @@ impl PositionManager {
 
         unsafe {
             let bots = &mut *self.bots.0.get();
-            for bot in bots.iter(){
+            for bot in bots.iter() {
                 if !bot.in_pos {
                     continue;
                 }

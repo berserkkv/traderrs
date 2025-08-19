@@ -70,8 +70,8 @@ pub struct Container {
 #[derive(Debug)]
 pub struct StrategyContainer {
     pub candles_map: HashMap<(Timeframe, Symbol), Vec<Candle>>,
-    macd: HashMap<(Timeframe, Symbol), Macd>,
-    ema: HashMap<(Timeframe, Symbol, usize), Vec<f64>>,
+    pub macd: HashMap<(Timeframe, Symbol), Macd>,
+    pub ema: HashMap<(Timeframe, Symbol, usize), Vec<f64>>,
 }
 impl StrategyContainer {
     pub fn new() -> Self {
@@ -88,17 +88,13 @@ impl StrategyContainer {
     }
 
     pub fn calculate_all(&mut self) {
-        let mut macd_map = HashMap::new();
-        let mut ema_map = HashMap::new();
         for ((timeframe, symbol), candles) in self.candles_map.iter() {
             let (macd, signal, histogram) = ta::macd_slice(&tools::get_close_prices(&candles));
-            macd_map.insert((*timeframe, *symbol), Macd { macd, signal, histogram });
-            ema_map.insert((*timeframe, *symbol, 20), ta::ema_slice(&tools::get_close_prices(candles), 20));
-            ema_map.insert((*timeframe, *symbol, 50), ta::ema_slice(&tools::get_close_prices(candles), 50));
-            ema_map.insert((*timeframe, *symbol, 200), ta::ema_slice(&tools::get_close_prices(candles), 200));
+            self.macd.insert((*timeframe, *symbol), Macd { macd, signal, histogram });
+            self.ema.insert((*timeframe, *symbol, 20), ta::ema_slice(&tools::get_close_prices(candles), 20));
+            self.ema.insert((*timeframe, *symbol, 50), ta::ema_slice(&tools::get_close_prices(candles), 50));
+            self.ema.insert((*timeframe, *symbol, 200), ta::ema_slice(&tools::get_close_prices(candles), 200));
         }
-        self.macd = macd_map;
-        self.ema = ema_map;
     }
 
     pub fn get_macd(&self, timeframe: &Timeframe, symbol: &Symbol) -> Option<&Macd> {

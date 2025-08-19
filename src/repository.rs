@@ -33,7 +33,7 @@ impl Repository {
         Ok(Repository { path: db_path })
     }
 
-    pub fn create_bot(&self, bot: &mut Bot) -> Result<usize> {
+    pub fn create_bot(&self, bot: &Bot) -> Result<usize> {
         let conn = Connection::open(&self.path)?;
         let now = tools::get_date(3);
         conn.execute(

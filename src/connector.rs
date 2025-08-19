@@ -129,9 +129,10 @@ impl BinanceConnector {
     }
 }
 
-
+#[allow(dead_code)]
 static BOT_ID_COUNTER: AtomicI64 = AtomicI64::new(201);
 
+#[allow(dead_code)]
 fn get_index() -> i64 {
     BOT_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
 }
