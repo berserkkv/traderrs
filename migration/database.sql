@@ -25,5 +25,16 @@ CREATE TABLE IF NOT EXISTS bots (
 
 CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
+    symbol TEXT NOT NULL,
+    order_type TEXT NOT NULL,
+    bot_name TEXT NOT NULL,
+    entry_price INTEGER NOT NULL,
+    exit_price INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    pnl INTEGER NOT NULL,
+    roe INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    closed_at TEXT NOT NULL,
+    fee INTEGER NOT NULL,
+    leverage INTEGER NOT NULL,
 )

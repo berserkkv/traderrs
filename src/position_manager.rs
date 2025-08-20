@@ -1,33 +1,33 @@
 use crate::connector::BinanceConnector;
 use crate::enums::Symbol;
 use crate::models::bot::Bot;
-use crate::models::models::{Order, SharedVec};
+use crate::models::models::{Container, Order, SharedVec};
 use crate::tools;
 use crate::tools::{shift_stop_loss, should_close_position, update_pnl_and_roe};
 use chrono::{DateTime, FixedOffset};
 use log::{debug, error, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{RwLock, Semaphore};
+use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
 
 
 pub struct PositionManager {
     bots: Arc<SharedVec<Bot>>,
-    orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,
     connector: Arc<BinanceConnector>,
+    container: Arc<Container>,
 }
 
 impl PositionManager {
     pub fn new(
         bots: Arc<SharedVec<Bot>>,
         connector: Arc<BinanceConnector>,
-        orders: Arc<RwLock<HashMap<String, Vec<Order>>>>,
+        container: Arc<Container>,
     ) -> Self {
         Self {
             bots,
             connector,
-            orders,
+            container,
         }
     }
 
@@ -89,16 +89,8 @@ impl PositionManager {
         if orders.is_empty() {
             return;
         }
-        let mut orders_map = self.orders.write().await;
 
-        for o in orders.drain(..) {
-            orders_map
-              .entry(o.bot_name.clone())
-              .or_insert(Vec::new())
-              .push(o);
-        }
-
-        orders.clear();
+        self.container.repository.create_orders(&orders).unwrap();
     }
 
     async fn update_prices(&self, prices: &mut HashMap<Symbol, f64>, fetch_tasks: &mut Vec<JoinHandle<Option<(Symbol, f64)>>>, fetch_symbols: &mut HashMap<Symbol, ()>) {

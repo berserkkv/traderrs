@@ -12,10 +12,9 @@ use rust_embed::RustEmbed;
 use std::collections::HashMap;
 use std::sync::Arc;
 use sysinfo::System;
-use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
 
-pub fn get_router(bots: Arc<SharedVec<Bot>>, order_map: Arc<RwLock<HashMap<String, Vec<Order>>>>, container: Arc<Container>) -> Router {
+pub fn get_router(bots: Arc<SharedVec<Bot>>, container: Arc<Container>) -> Router {
     let started_time = tools::get_date(3);
 
     let assets_router = Assets::router();
@@ -44,7 +43,6 @@ pub fn get_router(bots: Arc<SharedVec<Bot>>, order_map: Arc<RwLock<HashMap<Strin
       .route("/api/v1/bots/statistics", get(get_all_bot_statistics))
       .route("/api/v1/bots/{bot_name}/statistics", get(get_bot_statistics))
       .layer(Extension(bots))
-      .layer(Extension(order_map))
       .layer(Extension(started_time))
       .layer(Extension(container))
       .layer(cors)
@@ -82,15 +80,9 @@ pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Jso
     }
 }
 
-pub async fn get_orders_by_id(Path(id): Path<String>, Extension(order_map): Extension<Arc<RwLock<HashMap<String, Vec<Order>>>>>) -> Json<Vec<Order>> {
-    let mut orders = order_map
-      .read()
-      .await
-      .get(&id)
-      .cloned()
-      .unwrap_or(Vec::new());
+pub async fn get_orders_by_id(Path(id): Path<String>, Extension(container) : Extension<Arc<Container>>) -> Json<Vec<Order>> {
+    let mut orders = container.repository.get_order_by_bot_name(id).unwrap();
     orders.reverse();
-
     Json(orders)
 }
 
@@ -156,6 +148,35 @@ pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Exte
         bot_statistics,
     })
 }
+
+pub async fn get_statistic_in_range(Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
+    let vec = c.repository.get_statistic_in_range(DateTime::default(), DateTime::default()).unwrap();
+
+    let mut bot_statistics = Vec::with_capacity(vec.len());
+    if vec.is_empty() {
+        return Json(Statistic { bot_statistics });
+    }
+
+    let (win_days, lose_days, capital) = get_win_loss_capital(&vec).await;
+
+    bot_statistics.push(BotStatistic {
+        bot_name: vec[0].name.clone(),
+        win_days,
+        lose_days,
+        capital,
+
+        results: vec,
+    });
+
+    sort_bot_statistics(&mut bot_statistics);
+
+    Json(Statistic {
+        bot_statistics,
+    })
+}
+
+
+
 
 async fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f64) {
     let mut win_days = 0;

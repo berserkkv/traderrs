@@ -1,7 +1,7 @@
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::repository::Repository;
 use crate::{ta, tools};
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, Utc};
 use serde::{Deserialize, Serialize};
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
@@ -45,8 +45,8 @@ impl Order {
             quantity: 1.0,
             pnl: 0.0,
             roe: 0.0,
-            created_at: DateTime::default(),
-            closed_at: DateTime::default(),
+            created_at: DateTime::from(Utc::now()),
+            closed_at: DateTime::from(Utc::now()),
             fee: 0.1,
             leverage: 10.0,
         }

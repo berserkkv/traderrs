@@ -18,7 +18,7 @@
     {#each statistic.bot_statistics as s}
       <tr class="odd:bg-gray-900">
         <td class="table-cell">
-          <p>{s.bot_name}</p>
+          <a href="/bots/{s.bot_name}/">{s.bot_name}</a>
         </td>
         <td class='table-cell {tools.textUpOrDown(s.capital)}'>
           {s.capital.toFixed(2)}
