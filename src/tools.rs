@@ -2,7 +2,7 @@ use crate::calculator::{calculate_pnl, calculate_roe};
 use crate::enums::{OrderCommand, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::{BotStatistic, Candle};
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset, NaiveDateTime, Utc};
 use log::debug;
 use std::cmp::Ordering;
 use std::time::Duration;
@@ -158,6 +158,18 @@ pub fn sort_bot_statistics(bot_statisitcs: &mut Vec<BotStatistic>) -> &mut Vec<B
 
 pub fn get_date(time_zone: i32) -> DateTime<FixedOffset> {
     return Utc::now().with_timezone(&FixedOffset::east_opt(time_zone * 3600).unwrap());
+}
+
+pub fn parse_time(time_str: &str) -> DateTime<FixedOffset> {
+    // Parse without timezone
+    let naive = NaiveDateTime::parse_from_str(time_str, "%Y-%m-%dT%H:%M")
+      .expect("Failed to parse time");
+
+    // Istanbul is UTC+3
+    let ist_offset = FixedOffset::east_opt(3 * 3600).unwrap(); // 3 hours in seconds
+
+    // Convert to DateTime<FixedOffset>
+    DateTime::<FixedOffset>::from_utc(naive, ist_offset)
 }
 
 fn cmp_f64(a: &f64, b: &f64) -> Ordering {

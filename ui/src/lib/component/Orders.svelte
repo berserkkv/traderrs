@@ -3,7 +3,7 @@
   import {writable} from "svelte/store";
   import {API_BASE} from "$lib/config";
   import {bgUpOrDown, parseIsoToDate, textUpOrDown} from "$lib/tools.js";
-  import Chart from "$lib/component/Chart.svelte";
+  import Chart from '$lib/component/Chart.svelte'
 
   export let id;
 
@@ -75,7 +75,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {#each $data.slice() as o}
+                    {#each $data.slice().reverse() as o}
                         <tr>
                             <td class="border-none p-1 {bgUpOrDown(o.order_type === 'Long' ? 1 : -1)}"></td>
                             <td class="my-cell">{o.entry_price.toFixed(2)}</td>

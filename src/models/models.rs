@@ -139,6 +139,11 @@ pub struct Macd {
     pub histogram: Vec<f64>,
 }
 
+#[derive(Deserialize)]
+pub struct TimeRange {
+    pub(crate) start_time: String,
+    pub(crate) end_time: String,
+}
 
 pub struct SharedVec<T>(pub UnsafeCell<Vec<T>>);
 

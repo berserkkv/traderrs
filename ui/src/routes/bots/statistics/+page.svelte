@@ -29,9 +29,9 @@
         </td>
         {#each s.results as res}
           <td class="table-cell">
-            <p class="{tools.textUpOrDown(res.capital - 100)}">
+            <a href="/bots/{s.bot_name}/statistic?start={res.start_time}&end={res.end_time}" class="{tools.textUpOrDown(res.capital - 100)}">
               {res.capital.toFixed(1)}
-            </p>
+            </a>
           </td>
         {/each}
       </tr>

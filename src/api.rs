@@ -1,8 +1,8 @@
 use crate::models::bot::Bot;
-use crate::models::models::{BotStatistic, Container, Order, SharedVec, Statistic, StatisticResult, SystemInfo};
+use crate::models::models::{BotStatistic, Container, Order, SharedVec, Statistic, StatisticResult, SystemInfo, TimeRange};
 use crate::tools::sort_bot_statistics;
 use crate::{api, tools};
-use axum::extract::Path;
+use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{get, put};
 use axum::{Extension, Json, Router};
@@ -42,6 +42,7 @@ pub fn get_router(bots: Arc<SharedVec<Bot>>, container: Arc<Container>) -> Route
       .route("/api/v1/system", get(api::get_system_usage))
       .route("/api/v1/bots/statistics", get(get_all_bot_statistics))
       .route("/api/v1/bots/{bot_name}/statistics", get(get_bot_statistics))
+      .route("/api/v1/bots/{bot_name}/statistics/range", get(get_statistic_in_range))
       .layer(Extension(bots))
       .layer(Extension(started_time))
       .layer(Extension(container))
@@ -83,6 +84,24 @@ pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Jso
 pub async fn get_orders_by_id(Path(id): Path<String>, Extension(container) : Extension<Arc<Container>>) -> Json<Vec<Order>> {
     let mut orders = container.repository.get_order_by_bot_name(id).unwrap();
     orders.reverse();
+
+    // let mut orders = Vec::new();
+    // for i in 0..5 {
+    //     orders.push(Order::dummy());
+    // }
+    // orders.get_mut(0).unwrap().pnl = 0.0;
+    // orders.get_mut(1).unwrap().pnl = 3.0;
+    // orders.get_mut(2).unwrap().pnl = -10.5;
+    // orders.get_mut(3).unwrap().pnl = 20.5;
+    // orders.get_mut(4).unwrap().pnl = -2.0;
+    // orders.get_mut(0).unwrap().created_at = DateTime::parse_from_rfc3339("2025-08-21T10:00:00+03:00").unwrap();
+    // orders.get_mut(1).unwrap().created_at = DateTime::parse_from_rfc3339("2025-08-21T10:10:00+03:00").unwrap();
+    // orders.get_mut(2).unwrap().created_at = DateTime::parse_from_rfc3339("2025-08-21T10:20:00+03:00").unwrap();
+    // orders.get_mut(3).unwrap().created_at = DateTime::parse_from_rfc3339("2025-08-21T10:30:00+03:00").unwrap();
+    // orders.get_mut(4).unwrap().created_at = DateTime::parse_from_rfc3339("2025-08-21T10:40:00+03:00").unwrap();
+    //
+
+
     Json(orders)
 }
 
@@ -149,8 +168,11 @@ pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Exte
     })
 }
 
-pub async fn get_statistic_in_range(Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
-    let vec = c.repository.get_statistic_in_range(DateTime::default(), DateTime::default()).unwrap();
+pub async fn get_statistic_in_range(Path(bot_name): Path<String>, Query(range): Query<TimeRange>, Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
+    println!("name: {}, start: {}, end: {}", bot_name, range.start_time, range.end_time);
+    let start = tools::parse_time(&range.start_time);
+    let end = tools::parse_time(&range.end_time);
+    let vec = c.repository.get_statistic_in_range(start, end).unwrap();
 
     let mut bot_statistics = Vec::with_capacity(vec.len());
     if vec.is_empty() {

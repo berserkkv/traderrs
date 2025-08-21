@@ -11,7 +11,6 @@
   const data = writable<Statistic | null>(null);
   const loading = writable(true);
   const error = writable<string | null>(null);
-  let statistic: Statistic;
 
   onMount(async () => {
     try {

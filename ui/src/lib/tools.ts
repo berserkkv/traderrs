@@ -50,3 +50,11 @@ export function borderUpOrDown(num: number): string {
   }
   return "text-neutral-700";
 }
+
+export function formatToShort(datetimeStr: string | null) {
+  if (!datetimeStr) return null;
+  // Extract only the first 16 characters: "YYYY-MM-DDTHH:MM"
+  // This works if the input is like "2025-08-17T15:27:23.017469061 03:00"
+  const shortStr = datetimeStr.slice(0, 16);
+  return shortStr.replace(' ', 'T'); // just in case there is a space
+}
