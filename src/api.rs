@@ -82,8 +82,8 @@ pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Jso
 }
 
 pub async fn get_orders_by_id(Path(id): Path<String>, Extension(container) : Extension<Arc<Container>>) -> Json<Vec<Order>> {
-    let mut orders = container.repository.get_order_by_bot_name(id).unwrap();
-    orders.reverse();
+    let orders = container.repository.get_order_by_bot_name(id).unwrap();
+    // orders.reverse();
 
     // let mut orders = Vec::new();
     // for i in 0..5 {
