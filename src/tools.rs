@@ -169,7 +169,7 @@ pub fn parse_time(time_str: &str) -> DateTime<FixedOffset> {
     let ist_offset = FixedOffset::east_opt(3 * 3600).unwrap(); // 3 hours in seconds
 
     // Convert to DateTime<FixedOffset>
-    DateTime::<FixedOffset>::from_utc(naive, ist_offset)
+    DateTime::from_naive_utc_and_offset(naive, ist_offset)
 }
 
 fn cmp_f64(a: &f64, b: &f64) -> Ordering {

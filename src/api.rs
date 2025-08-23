@@ -168,33 +168,12 @@ pub async fn get_bot_statistics(Path(bot_name): Path<String>, Extension(c): Exte
     })
 }
 
-pub async fn get_statistic_in_range(Path(bot_name): Path<String>, Query(range): Query<TimeRange>, Extension(c): Extension<Arc<Container>>) -> Json<Statistic> {
-    println!("name: {}, start: {}, end: {}", bot_name, range.start_time, range.end_time);
+pub async fn get_statistic_in_range(Path(bot_name): Path<String>, Query(range): Query<TimeRange>, Extension(c): Extension<Arc<Container>>) -> Json<Vec<Order>> {
     let start = tools::parse_time(&range.start_time);
     let end = tools::parse_time(&range.end_time);
-    let vec = c.repository.get_statistic_in_range(start, end).unwrap();
+    let vec = c.repository.get_orders_in_range(bot_name, start, end).unwrap();
 
-    let mut bot_statistics = Vec::with_capacity(vec.len());
-    if vec.is_empty() {
-        return Json(Statistic { bot_statistics });
-    }
-
-    let (win_days, lose_days, capital) = get_win_loss_capital(&vec).await;
-
-    bot_statistics.push(BotStatistic {
-        bot_name: vec[0].name.clone(),
-        win_days,
-        lose_days,
-        capital,
-
-        results: vec,
-    });
-
-    sort_bot_statistics(&mut bot_statistics);
-
-    Json(Statistic {
-        bot_statistics,
-    })
+    Json(vec)
 }
 
 

@@ -36,6 +36,8 @@ impl Order {
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
     pub fn dummy() -> Self {
+        let offset = FixedOffset::east_opt(3 * 60 * 60).unwrap(); // +3 utc
+        let now = Utc::now().with_timezone(&offset);
         Self {
             symbol: Symbol::SolUsdt,
             order_type: OrderCommand::Long,
@@ -45,8 +47,8 @@ impl Order {
             quantity: 1.0,
             pnl: 0.0,
             roe: 0.0,
-            created_at: DateTime::from(Utc::now()),
-            closed_at: DateTime::from(Utc::now()),
+            created_at: now,
+            closed_at: now,
             fee: 0.1,
             leverage: 10.0,
         }

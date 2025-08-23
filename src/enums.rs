@@ -63,6 +63,7 @@ pub enum OrderCommand {
     Wait,
 }
 impl OrderCommand {
+    #[allow(dead_code)]
     pub fn to_string(&self) -> String {
         match self {
             OrderCommand::Long => String::from("Long"),
