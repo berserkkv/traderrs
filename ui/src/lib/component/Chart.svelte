@@ -1,32 +1,21 @@
 <script lang="ts">
   import {onMount} from 'svelte'
   import {createChart, type ISeriesApi, LineSeries, type UTCTimestamp} from 'lightweight-charts'
-
-  type Order = {
-    bot_id: number;
-    symbol: string;
-    entry_price: number;
-    exit_price: number;
-    fee: number;
-    quantity: number;
-    pnl: number;
-    roe: number;
-    order_type: string;
-    leverage: number;
-    created_at: string;
-    closed_at: string;
-  }
+  import type {Order} from '$lib/types'
 
   export let orders: Order[];
 
-
   let chartContainer: HTMLDivElement;
   onMount(() => {
+    let total = 0;
 
     const pnls = orders.map((o) => ({
-      value: o.pnl,
+
+      value: total += o.pnl,
       time: Math.floor(new Date(o.created_at).getTime() / 1000) as UTCTimestamp,
     }));
+
+    pnls.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
     const chart = createChart(chartContainer, {
       width: chartContainer.clientWidth,

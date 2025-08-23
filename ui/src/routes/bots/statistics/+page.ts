@@ -5,7 +5,7 @@ export async function load({fetch}) {
   const res = await fetch(`${API_BASE}/api/v1/bots/statistics`);
   if (!res.ok) throw  new Error('Failed to load bot results');
 
-  const statistic: Statistic = await res.json()
-
-  return {statistic};
+  const json = await res.json()
+  const statistic = json as Statistic;
+  return {statistic: statistic}
 }

@@ -20,3 +20,23 @@ export type BotStatistic = {
 export type Statistic = {
   bot_statistics: BotStatistic[],
 }
+
+export type Order = {
+  bot_id: number;
+  symbol: string;
+  entry_price: number;
+  exit_price: number;
+  fee: number;
+  quantity: number;
+  pnl: number;
+  roe: number;
+  order_type: string;
+  leverage: number;
+  created_at: string;
+  closed_at: string;
+}
+
+export type ChartData = {
+  value: number;
+  time: string;
+}
