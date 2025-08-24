@@ -43,6 +43,8 @@ pub fn get_router(bots: Arc<SharedVec<Bot>>, container: Arc<Container>) -> Route
       .route("/api/v1/bots/statistics", get(get_all_bot_statistics))
       .route("/api/v1/bots/{bot_name}/statistics", get(get_bot_statistics))
       .route("/api/v1/bots/{bot_name}/statistics/range", get(get_statistic_in_range))
+      .route("/api/v1/bots/state/get",get(get_bot_states))
+      .route("/api/v1/bots/state/save", get(save_bot_states))
       .layer(Extension(bots))
       .layer(Extension(started_time))
       .layer(Extension(container))
@@ -81,7 +83,23 @@ pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Jso
     }
 }
 
-pub async fn get_orders_by_id(Path(id): Path<String>, Extension(container) : Extension<Arc<Container>>) -> Json<Vec<Order>> {
+pub async fn save_bot_states(Extension(bots): Extension<Arc<SharedVec<Bot>>>, Extension(c): Extension<Arc<Container>>) {
+    let mut vec = Vec::new();
+    unsafe {
+        let bots = &mut *bots.0.get();
+
+        for bot in bots.iter() {
+            vec.push(bot.clone());
+        }
+    }
+    c.repository.save_bot_state(vec).expect("problem to save");
+}
+
+pub async fn get_bot_states(Extension(c): Extension<Arc<Container>>) -> Json<Vec<Bot>> {
+    let res = c.repository.get_bot_state().expect("error to get bot state");
+    Json(res)
+}
+pub async fn get_orders_by_id(Path(id): Path<String>, Extension(container): Extension<Arc<Container>>) -> Json<Vec<Order>> {
     let orders = container.repository.get_order_by_bot_name(id).unwrap();
     // orders.reverse();
 
@@ -175,8 +193,6 @@ pub async fn get_statistic_in_range(Path(bot_name): Path<String>, Query(range): 
 
     Json(vec)
 }
-
-
 
 
 async fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f64) {

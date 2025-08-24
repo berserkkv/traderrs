@@ -47,7 +47,13 @@ fn init_dependencies() -> (Arc<SharedVec<Bot>>, Arc<Container>) {
     let r = get_repository().expect("Error creating repository");
     let c = Arc::new(Container { repository: r });
 
-    let bots = Arc::new(SharedVec(UnsafeCell::new(init_bots())));
+    let bots_from_db = c.repository.get_bot_state().expect("error getting bot state");
+
+    let mut bots = Arc::new(SharedVec(UnsafeCell::new(init_bots())));
+
+    if !bots_from_db.is_empty() {
+          bots = Arc::new(SharedVec(UnsafeCell::new(bots_from_db)));
+    }
 
     let connector = BinanceConnector::new();
     let mut position_manager = PositionManager::new(

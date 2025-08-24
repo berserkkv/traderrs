@@ -21,7 +21,6 @@ use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct Bot {
-    pub id: i64,
     pub name: String,
     pub symbol: Symbol,
     pub timeframe: Timeframe,
@@ -80,7 +79,6 @@ impl Bot {
         let strategy = strategy::get_strategy(&strategy_name);
 
         Self {
-            id: generate_bot_id(),
             name,
             symbol,
             is_not_active: false,
@@ -139,7 +137,6 @@ impl Bot {
         let now = tools::get_date(3);
 
         Self {
-            id: 1000,
             name,
             symbol: SolUsdt,
             is_not_active: false,
@@ -355,7 +352,6 @@ impl Debug for Bot {
 impl Clone for Bot {
     fn clone(&self) -> Self {
         Self {
-            id: 0,
             name: self.name.clone(),
             symbol: self.symbol.clone(),
             timeframe: self.timeframe.clone(),
