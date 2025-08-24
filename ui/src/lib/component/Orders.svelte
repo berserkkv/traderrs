@@ -11,19 +11,18 @@
         <div>
             <div class="my-2">
                 <Chart orders={orders}/>
-
             </div>
-            <div>
-                <table class="my-table">
+            <div class="overflow-x-auto w-full">
+                <table class="table">
                     <thead>
                     <tr class="text-neutral-500  text-xs bg-neutral-900">
                         <th class=""></th>
 
-                        <th class="my-cell">Entry Price</th>
-                        <th class="my-cell">Exit Price</th>
-                        <th class="my-cell">Pnl (Roe)</th>
-                        <th class="my-cell">Created time</th>
-                        <th class="my-cell">Closed time</th>
+                        <th class="table-cell">Entry Price</th>
+                        <th class="table-cell">Exit Price</th>
+                        <th class="table-cell">Pnl (Roe)</th>
+                        <th class="table-cell">Created time</th>
+                        <th class="table-cell">Closed time</th>
 
 
                     </tr>
@@ -32,11 +31,11 @@
                     {#each orders.slice().reverse() as o}
                         <tr>
                             <td class="border-none p-1 {bgUpOrDown(o.order_type === 'Long' ? 1 : -1)}"></td>
-                            <td class="my-cell">{o.entry_price.toFixed(2)}</td>
-                            <td class="my-cell">{o.exit_price.toFixed(2)}</td>
-                            <td class="my-cell {textUpOrDown(o.pnl)}">{o.pnl.toFixed(2)} ({o.roe.toFixed(2)}%)</td>
-                            <td class="my-cell">{parseIsoToDate(o.created_at)}</td>
-                            <td class="my-cell">{parseIsoToDate(o.closed_at)}</td>
+                            <td class="table-cell">{o.entry_price.toFixed(2)}</td>
+                            <td class="table-cell">{o.exit_price.toFixed(2)}</td>
+                            <td class="table-cell {textUpOrDown(o.pnl)}">{o.pnl.toFixed(2)} ({o.roe.toFixed(2)}%)</td>
+                            <td class="table-cell">{parseIsoToDate(o.created_at)}</td>
+                            <td class="table-cell">{parseIsoToDate(o.closed_at)}</td>
                         </tr>
                     {/each}
                     </tbody>

@@ -3,9 +3,10 @@
 @layer utilities {
     table {
         border-collapse: collapse;
+        @apply min-w-full
     }
     .table-cell {
-        @apply border border-gray-950 px-2 py-1;
+        @apply border border-gray-800 px-2 py-1;
     }
 }
 

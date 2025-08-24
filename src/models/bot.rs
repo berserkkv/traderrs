@@ -16,7 +16,6 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
-use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
@@ -332,12 +331,6 @@ impl Bot {
 fn format_symbol(symbol: &Symbol) -> String {
     let s = format!("{:?}", symbol);
     s.strip_suffix("Usdt").unwrap_or(&s).to_string()
-}
-
-static BOT_ID_COUNTER: AtomicI64 = AtomicI64::new(1);
-
-fn generate_bot_id() -> i64 {
-    BOT_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
 impl Debug for Bot {
