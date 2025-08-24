@@ -91,6 +91,7 @@ impl PositionManager {
         }
 
         self.container.repository.create_orders(&orders).unwrap();
+        orders.clear();
     }
 
     async fn update_prices(&self, prices: &mut HashMap<Symbol, f64>, fetch_tasks: &mut Vec<JoinHandle<Option<(Symbol, f64)>>>, fetch_symbols: &mut HashMap<Symbol, ()>) {
