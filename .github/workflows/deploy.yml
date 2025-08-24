@@ -36,6 +36,9 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Save bot state
+        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
+
       - name: Stop and disable old service
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
