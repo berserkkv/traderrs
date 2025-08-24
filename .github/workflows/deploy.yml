@@ -20,6 +20,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Save bot state
+        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -35,9 +38,6 @@ jobs:
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Save bot state
-        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
 
       - name: Stop and disable old service
         run: |
