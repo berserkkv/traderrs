@@ -23,6 +23,7 @@ use crate::position_manager::PositionManager;
 use crate::repository::Repository;
 use log::info;
 use std::cell::UnsafeCell;
+use std::collections::HashMap;
 use std::env::home_dir;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -37,7 +38,6 @@ async fn main() {
 
     let app = get_router(bots, c);
 
-
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
     info!("listening on port: {}", listener.local_addr().unwrap().port());
     axum::serve(listener, app).await.unwrap();
@@ -47,13 +47,22 @@ fn init_dependencies() -> (Arc<SharedVec<Bot>>, Arc<Container>) {
     let r = get_repository().expect("Error creating repository");
     let c = Arc::new(Container { repository: r });
 
-    let bots_from_db = c.repository.get_bot_state().expect("error getting bot state");
+    let mut bots_from_db = c.repository.get_bot_state().expect("error getting bot state");
 
-    let mut bots = Arc::new(SharedVec(UnsafeCell::new(init_bots())));
-
-    if !bots_from_db.is_empty() {
-          bots = Arc::new(SharedVec(UnsafeCell::new(bots_from_db)));
+    let mut bots_name_map = HashMap::new();
+    for b in  bots_from_db.iter() {
+        bots_name_map.insert(b.name.clone(), {});
     }
+
+    let new_bots = init_bots();
+
+    for b in new_bots.into_iter() {
+        if !bots_name_map.contains_key(&b.name) {
+            bots_from_db.push(b);
+        }
+    }
+
+    let bots = Arc::new(SharedVec(UnsafeCell::new(bots_from_db)));
 
     let connector = BinanceConnector::new();
     let mut position_manager = PositionManager::new(

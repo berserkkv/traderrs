@@ -43,7 +43,7 @@ impl EntryManager {
         }
 
 
-        self.update_bots_data().await;
+        self.update_bots_data(bots).await;
 
         wait_until_next_aligned_tick(Duration::from_secs(sleep_time)).await;
         tokio::time::sleep(Duration::from_secs(extra_sleep_time)).await;
@@ -51,15 +51,15 @@ impl EntryManager {
         loop {
             now = tools::get_date(3);
 
-            self.strategy_container.reset();
-
-            self.save_and_reset_bots(&now).await;
+            self.save_and_reset_bots(bots, &now).await;
 
             self.update_candles(now.minute()).await;
 
             self.calculate_ta().await;
 
             self.scan_bots(bots, &now).await;
+
+            self.strategy_container.reset();
 
             wait_until_next_aligned_tick(Duration::from_secs(sleep_time)).await;
             tokio::time::sleep(Duration::from_secs(extra_sleep_time)).await;
@@ -68,9 +68,7 @@ impl EntryManager {
 
     async fn scan_bots(&mut self, bots: &mut Vec<Bot>, now: &DateTime<FixedOffset>) {
         for bot in bots.iter_mut() {
-            if bot.is_not_allowed_for_scanning(now) {
-                continue;
-            }
+            if bot.is_not_allowed_for_scanning(now) { continue; }
 
             bot.last_scanned = *now;
 
@@ -91,30 +89,23 @@ impl EntryManager {
         }
     }
 
-    async fn update_bots_data(&mut self) {
+    async fn update_bots_data(&mut self, bots: &mut Vec<Bot>) {
         self.bots_data.clear();
 
-        unsafe {
-            let bots = &mut *self.bots.0.get();
-            for bot in bots.iter() {
-                self.bots_data
-                    .entry(bot.timeframe)
-                    .or_insert(HashMap::new())
-                    .insert(bot.symbol, ());
-            }
+        for bot in bots.iter() {
+            self.bots_data
+                .entry(bot.timeframe)
+                .or_insert(HashMap::new())
+                .insert(bot.symbol, ());
         }
     }
 
-    async fn save_and_reset_bots(&mut self, now: &DateTime<FixedOffset>) {
+    async fn save_and_reset_bots(&mut self, bots: &mut Vec<Bot>, now: &DateTime<FixedOffset>) {
         if now.hour() == 0 && now.minute() == 0 {
-            unsafe {
-                let bots = &mut *self.bots.0.get();
+            self.c.repository.create_bots_in_batch(bots).expect("error creating bots");
 
-                self.c.repository.create_bots_in_batch(bots).expect("error creating bots");
-
-                for b in bots.iter_mut() {
-                    b.reset();
-                }
+            for b in bots.iter_mut() {
+                b.reset();
             }
         }
     }

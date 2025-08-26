@@ -232,6 +232,7 @@ impl Repository {
         Ok(bots)
     }
 
+    #[allow(dead_code)]
     pub fn create_bot(&self, bot: &Bot) -> Result<usize> {
         let conn = Connection::open(&self.path)?;
         let now = tools::get_date(3);
