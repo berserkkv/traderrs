@@ -37,6 +37,10 @@ impl EntryManager {
         let mut now: DateTime<FixedOffset>;
         let sleep_time = 60;
         let extra_sleep_time = 3;
+        let bots: &mut Vec<Bot>;
+        unsafe {
+            bots = &mut *self.bots.0.get();
+        }
 
 
         self.update_bots_data().await;
@@ -55,37 +59,33 @@ impl EntryManager {
 
             self.calculate_ta().await;
 
-            self.scan_bots(&now).await;
+            self.scan_bots(bots, &now).await;
 
             wait_until_next_aligned_tick(Duration::from_secs(sleep_time)).await;
             tokio::time::sleep(Duration::from_secs(extra_sleep_time)).await;
         }
     }
 
-    async fn scan_bots(&mut self, now: &DateTime<FixedOffset>) {
-        unsafe {
-            let bots = &mut *self.bots.0.get();
+    async fn scan_bots(&mut self, bots: &mut Vec<Bot>, now: &DateTime<FixedOffset>) {
+        for bot in bots.iter_mut() {
+            if bot.is_not_allowed_for_scanning(now) {
+                continue;
+            }
 
-            for bot in bots.iter_mut() {
-                if bot.is_not_allowed_for_scanning(now) {
-                    continue;
+            bot.last_scanned = *now;
+
+            let (command, strategy_info) = bot.run_strategy(&self.strategy_container);
+
+            debug!("command: {:?}, info: {}", command, strategy_info);
+
+            match command {
+                OrderCommand::Long | OrderCommand::Short => {
+                    if let Err(e) = bot.open_position(&command, &self.connector).await {
+                        error!("Failed to open position for {}: {}", bot.name, e);
+                    }
                 }
-
-                bot.last_scanned = *now;
-
-                let (command, strategy_info) = bot.run_strategy(&self.strategy_container);
-
-                debug!("command: {:?}, info: {}", command, strategy_info);
-
-                match command {
-                    OrderCommand::Long | OrderCommand::Short => {
-                        if let Err(e) = bot.open_position(&command, &self.connector).await {
-                            error!("Failed to open position for {}: {}", bot.name, e);
-                        }
-                    }
-                    _ => {
-                        bot.log = strategy_info;
-                    }
+                _ => {
+                    bot.log = strategy_info;
                 }
             }
         }
@@ -109,8 +109,10 @@ impl EntryManager {
         if now.hour() == 0 && now.minute() == 0 {
             unsafe {
                 let bots = &mut *self.bots.0.get();
+
+                self.c.repository.create_bots_in_batch(bots).expect("error creating bots");
+
                 for b in bots.iter_mut() {
-                    let _ = self.c.repository.create_bot(b).expect("");
                     b.reset();
                 }
             }

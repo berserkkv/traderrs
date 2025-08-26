@@ -40,12 +40,18 @@ impl PositionManager {
 
         let mut fetch_tasks: Vec<JoinHandle<Option<(Symbol, f64)>>> = Vec::new();
         let mut fetch_symbols: HashMap<Symbol, ()> = HashMap::new();
+        let bots: &mut Vec<Bot>;
+
+        unsafe {
+            bots = &mut *self.bots.0.get();
+        }
+
         loop {
             now = tools::get_date(3);
 
             self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
 
-            self.scan_bots(&prices, &mut to_close, now).await;
+            self.scan_bots(bots, &prices, &mut to_close, now).await;
 
             self.handle_closed_position(&mut to_close).await;
 
@@ -53,34 +59,28 @@ impl PositionManager {
         }
     }
 
-    async fn scan_bots(&mut self, prices: &HashMap<Symbol, f64>, to_close: &mut Vec<Order>, now: DateTime<FixedOffset>) {
+    async fn scan_bots(&mut self, bots: &mut Vec<Bot>, prices: &HashMap<Symbol, f64>, to_close: &mut Vec<Order>, now: DateTime<FixedOffset>) {
         if prices.is_empty() {
             return;
         }
-        unsafe {
-            let bots = &mut *self.bots.0.get();
 
-            for bot in bots.iter_mut() {
-                if !bot.in_pos {
-                    continue;
-                }
+        for bot in bots.iter_mut() {
+            if !bot.in_pos { continue; }
 
-
-                if let Some(&price) = prices.get(&bot.symbol) {
-                    if should_close_position(price, &bot) {
-                        if let Ok(order) = bot.close_position(price) {
-                            to_close.push(order);
-                        }
-                    } else {
-                        update_pnl_and_roe(bot, price);
-                        shift_stop_loss(bot);
-                        bot.last_scanned = now;
+            if let Some(&price) = prices.get(&bot.symbol) {
+                if should_close_position(price, &bot) {
+                    if let Ok(order) = bot.close_position(price) {
+                        to_close.push(order);
                     }
                 } else {
-                    bot.log = "price is missing".to_string();
-                    warn!("Price missing");
-                    continue;
+                    update_pnl_and_roe(bot, price);
+                    shift_stop_loss(bot);
+                    bot.last_scanned = now;
                 }
+            } else {
+                bot.log = "price is missing".to_string();
+                warn!("price missing");
+                continue;
             }
         }
     }

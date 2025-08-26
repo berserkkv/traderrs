@@ -242,6 +242,25 @@ impl Repository {
         )
     }
 
+    pub fn create_bots_in_batch(&self, bots: &mut Vec<Bot>) -> Result<()> {
+        let mut conn = Connection::open(&self.path)?;
+        let now = tools::get_date(3);
+
+        let tx = conn.transaction()?;
+        {
+            let mut stmt = tx.prepare("INSERT INTO bots (id, name, capital, wins, losses, start_time, end_time) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)")?;
+
+            for b in bots {
+                let id = format!("{}_{}", b.name, b.started_at);
+                stmt.execute(params![id, b.name, b.capital + b.order_capital, b.wins, b.losses, b.started_at.to_rfc3339(), now.to_rfc3339()])?;
+            }
+        }
+
+        tx.commit()?;
+
+        Ok(())
+    }
+
     pub fn get_bot(&self, bot_name: String) -> Result<Vec<StatisticResult>> {
         let conn = Connection::open(&self.path)?;
         let mut stmt = conn.prepare("SELECT  name, capital, wins, losses, start_time, end_time FROM bots WHERE name = ?1")?;
