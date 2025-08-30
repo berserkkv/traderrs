@@ -215,7 +215,6 @@ async fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f
 #[derive(RustEmbed)]
 #[folder = "ui/build"]
 pub struct Assets;
-
 impl Assets {
     pub fn get_file(path: &str) -> Option<(Vec<u8>, String)> {
         Assets::get(path).map(|file| {

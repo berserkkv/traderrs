@@ -49,7 +49,7 @@ impl PositionManager {
         loop {
             now = tools::get_date(3);
 
-            self.update_prices(&mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
+            self.update_prices(bots, &mut prices, &mut fetch_tasks, &mut fetch_symbols).await;
 
             self.scan_bots(bots, &prices, &mut to_close, now).await;
 
@@ -94,19 +94,16 @@ impl PositionManager {
         orders.clear();
     }
 
-    async fn update_prices(&self, prices: &mut HashMap<Symbol, f64>, fetch_tasks: &mut Vec<JoinHandle<Option<(Symbol, f64)>>>, fetch_symbols: &mut HashMap<Symbol, ()>) {
+    async fn update_prices(&self, bots: &Vec<Bot>, prices: &mut HashMap<Symbol, f64>, fetch_tasks: &mut Vec<JoinHandle<Option<(Symbol, f64)>>>, fetch_symbols: &mut HashMap<Symbol, ()>) {
         fetch_tasks.clear();
         fetch_symbols.clear();
         prices.clear();
 
-        unsafe {
-            let bots = &mut *self.bots.0.get();
-            for bot in bots.iter() {
-                if !bot.in_pos {
-                    continue;
-                }
-                fetch_symbols.insert(bot.symbol, {});
+        for bot in bots.iter() {
+            if !bot.in_pos {
+                continue;
             }
+            fetch_symbols.insert(bot.symbol, {});
         }
 
         let semaphore = Arc::new(Semaphore::new(25)); // Limit concurrent tasks

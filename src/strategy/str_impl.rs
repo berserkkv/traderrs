@@ -106,6 +106,7 @@ impl Strategy for EmaMacd2 {
         }
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct EmaBounce {}
 impl Strategy for EmaBounce {
