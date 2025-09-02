@@ -1,16 +1,20 @@
 import {API_BASE} from "$lib/config";
-import type {Order, Statistic} from '$lib/types';
+import type {Bot, Order, Statistic} from '$lib/types';
 import {error} from '@sveltejs/kit';
 
 export async function load({ params, fetch }) {
   const id = params.id;
 
   try {
-    const [ordersRes, statsRes] = await Promise.all([
+    const [botRes, ordersRes, statsRes] = await Promise.all([
+      fetch(`${API_BASE}/api/v1/bots/${id}`),
       fetch(`${API_BASE}/api/v1/bots/${id}/orders`),
       fetch(`${API_BASE}/api/v1/bots/${id}/statistics`)
     ]);
 
+    if (!botRes.ok) {
+      throw error(botRes.status, `Failed to load bot: ${botRes.statusText}`);
+    }
     if (!ordersRes.ok) {
       throw error(ordersRes.status, `Failed to load orders: ${ordersRes.statusText}`);
     }
@@ -18,10 +22,11 @@ export async function load({ params, fetch }) {
       throw error(statsRes.status, `Failed to load statistics: ${statsRes.statusText}`);
     }
 
+    const bot = await botRes.json() as Bot;
     const orders = await ordersRes.json() as Order[];
     const statistic = await statsRes.json() as Statistic;
 
-    return { id, orders, statistic };
+    return { id, bot, orders, statistic };
 
   } catch (err) {
     console.error(err);

@@ -38,12 +38,13 @@ pub fn get_router(bots: Arc<SharedVec<Bot>>, container: Arc<Container>) -> Route
     assets_router
       .route("/api/v1/bots", get(get_all_bot))
       .route("/api/v1/bots/{id}/orders", get(get_orders_by_id))
+      .route("/api/v1/bots/{id}", get(get_bot_by_name))
       .route("/api/v1/bots/reset", put(reset_bots))
       .route("/api/v1/system", get(api::get_system_usage))
       .route("/api/v1/bots/statistics", get(get_all_bot_statistics))
       .route("/api/v1/bots/{bot_name}/statistics", get(get_bot_statistics))
       .route("/api/v1/bots/{bot_name}/statistics/range", get(get_statistic_in_range))
-      .route("/api/v1/bots/state/get",get(get_bot_states))
+      .route("/api/v1/bots/state/get", get(get_bot_states))
       .route("/api/v1/bots/state/save", get(save_bot_states))
       .layer(Extension(bots))
       .layer(Extension(started_time))
@@ -70,17 +71,32 @@ pub async fn get_system_usage(Extension(started_time): Extension<DateTime<FixedO
     })
 }
 
-pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Json<Vec<Bot>> {
-    unsafe {
-        let bots = &mut *bots.0.get();
-        let mut v = Vec::with_capacity(bots.len());
-        for b in bots.iter() {
-            v.push(b.clone());
-        }
+pub async fn get_bot_by_name(Path(id): Path<String>, Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Json<Bot> {
+    let bot_vec: &mut Vec<Bot>;
 
-        tools::sort_bots(&mut v);
-        Json(v)
+    unsafe { bot_vec = &mut *bots.0.get(); }
+
+    for b in bot_vec.iter() {
+        if b.name == id {
+            return Json(b.clone())
+        }
     }
+
+    Json(Bot::new_dummy())
+}
+
+pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Json<Vec<Bot>> {
+    let bot_vec: &mut Vec<Bot>;
+
+    unsafe { bot_vec = &mut *bots.0.get(); }
+
+    let mut v = Vec::with_capacity(bot_vec.len());
+    for b in bot_vec.iter() {
+        v.push(b.clone());
+    }
+
+    tools::sort_bots(&mut v);
+    Json(v)
 }
 
 pub async fn save_bot_states(Extension(bots): Extension<Arc<SharedVec<Bot>>>, Extension(c): Extension<Arc<Container>>) {
@@ -99,6 +115,7 @@ pub async fn get_bot_states(Extension(c): Extension<Arc<Container>>) -> Json<Vec
     let res = c.repository.get_bot_state().expect("error to get bot state");
     Json(res)
 }
+
 pub async fn get_orders_by_id(Path(id): Path<String>, Extension(container): Extension<Arc<Container>>) -> Json<Vec<Order>> {
     let orders = container.repository.get_order_by_bot_name(id).unwrap();
     // orders.reverse();
