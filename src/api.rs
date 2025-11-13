@@ -246,7 +246,6 @@ pub async fn get_statistic_in_range(Path(bot_name): Path<String>, Query(range): 
     Json(vec)
 }
 
-
 async fn get_win_loss_capital(statistics: &Vec<StatisticResult>) -> (u16, u16, f64) {
     let mut win_days = 0;
     let mut lose_days = 0;
