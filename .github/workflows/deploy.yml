@@ -20,8 +20,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Save bot state
-        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
+#      - name: Save bot state
+#        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
