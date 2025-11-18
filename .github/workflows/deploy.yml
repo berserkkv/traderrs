@@ -48,25 +48,33 @@ jobs:
 
       - name: Upload binary
         run: |
-          scp -o StrictHostKeyChecking=no target/release/traderrs $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs
+          scp -o StrictHostKeyChecking=no target/release/traderrs \
+              $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs
 
       - name: Upload service file
         run: |
-          scp -o StrictHostKeyChecking=no traderrs.service $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs.service
+          scp -o StrictHostKeyChecking=no traderrs.service \
+              $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs.service
 
       - name: Deploy
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+            # Stop old service
             sudo systemctl stop $SERVICE_NAME || true
 
+            # Move binary
             sudo mv /tmp/traderrs $REMOTE_BIN
             sudo chmod +x $REMOTE_BIN
 
+            # Move service file
             sudo mv /tmp/traderrs.service $SERVICE_REMOTE_PATH
             sudo chmod 644 $SERVICE_REMOTE_PATH
 
+            # Reload systemd + start service
             sudo systemctl daemon-reload
             sudo systemctl enable $SERVICE_NAME
             sudo systemctl restart $SERVICE_NAME
+
+            # Show service status
             sudo systemctl status $SERVICE_NAME --no-pager
           EOF
