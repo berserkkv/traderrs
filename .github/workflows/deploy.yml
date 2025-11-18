@@ -39,13 +39,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-#      - name: Stop and disable old service
-#        run: |
-#          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
+      - name: Stop and disable old service
+        run: |
+          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
 #            sudo systemctl stop $SERVICE_NAME || true
 #            sudo systemctl disable $SERVICE_NAME || true
 #            sudo rm -f $REMOTE_PATH
-#          EOF
+          EOF
 
       - name: Upload binary to /tmp
         run: |
