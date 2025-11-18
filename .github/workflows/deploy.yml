@@ -12,7 +12,8 @@ jobs:
     env:
       REMOTE_USER: b
       REMOTE_HOST: 77.37.96.91
-      REMOTE_PATH: /home/n/traderrs
+      REMOTE_DIR: /home/b/traderrs
+      REMOTE_BIN: /home/b/traderrs/traderrs
       SERVICE_NAME: traderrs.service
       SERVICE_REMOTE_PATH: /etc/systemd/system/traderrs.service
 
@@ -20,8 +21,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-#      - name: Save bot state
-#        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
+      - name: Save bot state
+        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -39,29 +40,31 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Stop and disable old service
+      - name: Prepare remote directory
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-#            sudo systemctl stop $SERVICE_NAME || true
-#            sudo systemctl disable $SERVICE_NAME || true
-#            sudo rm -f $REMOTE_PATH
+            mkdir -p $REMOTE_DIR
           EOF
 
-      - name: Upload binary to /tmp
+      - name: Upload binary
         run: |
           scp -o StrictHostKeyChecking=no target/release/traderrs $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs
 
-      - name: Upload service file to /tmp
+      - name: Upload service file
         run: |
           scp -o StrictHostKeyChecking=no traderrs.service $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs.service
 
-      - name: Move binary and service, enable and start service
+      - name: Deploy
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-            sudo mv /tmp/traderrs $REMOTE_PATH
-            sudo chmod +x $REMOTE_PATH
+            sudo systemctl stop $SERVICE_NAME || true
+
+            sudo mv /tmp/traderrs $REMOTE_BIN
+            sudo chmod +x $REMOTE_BIN
+
             sudo mv /tmp/traderrs.service $SERVICE_REMOTE_PATH
             sudo chmod 644 $SERVICE_REMOTE_PATH
+
             sudo systemctl daemon-reload
             sudo systemctl enable $SERVICE_NAME
             sudo systemctl restart $SERVICE_NAME
