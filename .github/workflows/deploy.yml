@@ -21,7 +21,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-
 #      - name: Save bot state
 #        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
 
@@ -60,7 +59,7 @@ jobs:
       - name: Deploy
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-            # Stop old service
+#            # Stop old service
 #            sudo systemctl stop $SERVICE_NAME || true
 
             # Move binary
