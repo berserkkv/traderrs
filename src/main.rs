@@ -1,15 +1,15 @@
-mod connector;
+mod api;
 mod calculator;
+mod connector;
 mod entry_manager;
 mod enums;
 mod logger;
 mod models;
 mod position_manager;
+mod repository;
 mod strategy;
 mod ta;
 mod tools;
-mod repository;
-mod api;
 
 use crate::api::get_router;
 use crate::connector::BinanceConnector;
@@ -39,7 +39,10 @@ async fn main() {
     let app = get_router(bots, c);
 
     let listener = TcpListener::bind("0.0.0.0:3030").await.unwrap();
-    info!("listening on port: {}", listener.local_addr().unwrap().port());
+    info!(
+        "listening on port: {}",
+        listener.local_addr().unwrap().port()
+    );
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -47,10 +50,13 @@ fn init_dependencies() -> (Arc<SharedVec<Bot>>, Arc<Container>) {
     let r = get_repository().expect("Error creating repository");
     let c = Arc::new(Container { repository: r });
 
-    let mut bots_from_db = c.repository.get_bot_state().expect("error getting bot state");
+    let mut bots_from_db = c
+        .repository
+        .get_bot_state()
+        .expect("error getting bot state");
 
     let mut bots_name_map = HashMap::new();
-    for b in  bots_from_db.iter() {
+    for b in bots_from_db.iter() {
         bots_name_map.insert(b.name.clone(), {});
     }
 
@@ -65,11 +71,8 @@ fn init_dependencies() -> (Arc<SharedVec<Bot>>, Arc<Container>) {
     let bots = Arc::new(SharedVec(UnsafeCell::new(bots_from_db)));
 
     let connector = BinanceConnector::new();
-    let mut position_manager = PositionManager::new(
-        bots.clone(),
-        Arc::new(connector.clone()),
-        c.clone(),
-    );
+    let mut position_manager =
+        PositionManager::new(bots.clone(), Arc::new(connector.clone()), c.clone());
     let mut entry_manager = EntryManager::new(bots.clone(), Arc::new(connector), Arc::clone(&c));
 
     tokio::spawn(async move {
@@ -93,7 +96,7 @@ fn init_bots() -> Vec<Bot> {
 
     let tf = [Min1, Min5, Min15, Min30, Hour1];
     let st = ["EmaMacd", "EmaMacd2", "EmaBounce"];
-    let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt,];
+    let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
 
     for t in tf.iter() {
         for s in st.iter() {

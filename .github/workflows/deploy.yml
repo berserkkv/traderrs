@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      REMOTE_USER: n
-      REMOTE_HOST: 193.180.208.245
+      REMOTE_USER: b
+      REMOTE_HOST: 77.37.96.91
       REMOTE_PATH: /home/n/traderrs
       SERVICE_NAME: traderrs.service
       SERVICE_REMOTE_PATH: /etc/systemd/system/traderrs.service
