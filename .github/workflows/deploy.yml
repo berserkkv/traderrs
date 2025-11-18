@@ -61,7 +61,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
             # Stop old service
-            sudo systemctl stop $SERVICE_NAME || true
+#            sudo systemctl stop $SERVICE_NAME || true
 
             # Move binary
             sudo mv /tmp/traderrs $REMOTE_BIN
