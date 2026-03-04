@@ -4,6 +4,7 @@ set -e
 BINARY_NAME="traderrs"
 TARGET_DIR="target/release"
 
+
 REMOTE_USER="n"
 REMOTE_HOST="193.180.208.245"
 REMOTE_PATH="/home/$REMOTE_USER/$BINARY_NAME"
