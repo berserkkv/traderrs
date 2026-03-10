@@ -77,4 +77,4 @@ jobs:
 
             # Show service status
             sudo systemctl status $SERVICE_NAME --no-pager
-          EOF
+EOF
