@@ -10,19 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      REMOTE_USER: b
-      REMOTE_HOST: 92.113.151.200
-      REMOTE_DIR: /home/b/traderrs
-      REMOTE_BIN: /home/b/traderrs/traderrs
+      REMOTE_USER: n
+      REMOTE_HOST: 193.180.208.245
+      REMOTE_PATH: /home/n/traderrs
       SERVICE_NAME: traderrs.service
       SERVICE_REMOTE_PATH: /etc/systemd/system/traderrs.service
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-#      - name: Save bot state
-#        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -40,41 +36,34 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Prepare remote directory
+      - name: Save bot state
+        run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
+
+      - name: Stop and disable old service
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-            mkdir -p $REMOTE_DIR
+            sudo systemctl stop $SERVICE_NAME || true
+            sudo systemctl disable $SERVICE_NAME || true
+            sudo rm -f $REMOTE_PATH
           EOF
 
-      - name: Upload binary
+      - name: Upload binary to /tmp
         run: |
-          scp -o StrictHostKeyChecking=no target/release/traderrs \
-              $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs
+          scp -o StrictHostKeyChecking=no target/release/traderrs $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs
 
-      - name: Upload service file
+      - name: Upload service file to /tmp
         run: |
-          scp -o StrictHostKeyChecking=no traderrs.service \
-              $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs.service
+          scp -o StrictHostKeyChecking=no traderrs.service $REMOTE_USER@$REMOTE_HOST:/tmp/traderrs.service
 
-      - name: Deploy
+      - name: Move binary and service, enable and start service
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << EOF
-#            # Stop old service
-#            sudo systemctl stop $SERVICE_NAME || true
-
-            # Move binary
-            sudo mv /tmp/traderrs $REMOTE_BIN
-            sudo chmod +x $REMOTE_BIN
-
-            # Move service file
+            sudo mv /tmp/traderrs $REMOTE_PATH
+            sudo chmod +x $REMOTE_PATH
             sudo mv /tmp/traderrs.service $SERVICE_REMOTE_PATH
             sudo chmod 644 $SERVICE_REMOTE_PATH
-
-            # Reload systemd + start service
             sudo systemctl daemon-reload
             sudo systemctl enable $SERVICE_NAME
             sudo systemctl restart $SERVICE_NAME
-
-            # Show service status
             sudo systemctl status $SERVICE_NAME --no-pager
           EOF
