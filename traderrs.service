@@ -5,11 +5,11 @@ After=network.target
 
 [Service]
 User=b
-ExecStart=/home/n/traderrs
+ExecStart=/home/b/traderrs
 Restart=no
 RestartSec=5
 # Optional: Uncomment if your app needs environment variables or working directory
-# WorkingDirectory=/home/n
+# WorkingDirectory=/home/b
 Environment=RUST_LOG=debug
 
 [Install]
