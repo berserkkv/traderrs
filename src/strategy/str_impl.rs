@@ -153,6 +153,59 @@ impl Strategy for EmaBounce {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct StocBorder {}
+impl Strategy for StocBorder {
+    fn name(&self) -> &str {
+        "StocBorder"
+    }
+
+    fn run(&self, sc: &StrategyContainer, timeframe: &Timeframe, symbol: &Symbol) -> (OrderCommand, String) {
+        let option_candles = sc.candles_map.get(&(*timeframe, *symbol));
+        if option_candles.is_none() {
+            return (Wait, "no candles".to_string());
+        }
+
+        let candles = option_candles.unwrap();
+
+        if candles.is_empty() {
+            return (Wait, "no candles".to_string());
+        }
+
+        let stochastic = if let Some(val) = sc.get_stochastic(timeframe, symbol) {
+            val
+        } else { return (Wait, "No stochastic".to_string()) };
+
+
+        let ema200 = if let Some(val) = sc.get_ema(timeframe, symbol, 200) {
+            val[val.len() - 1]
+        } else { return (Wait, "No Ema".to_string()) };
+
+        let closes = get_close_prices(candles);
+
+
+        let n = stochastic.d.len();
+        let stoch_current= stochastic.d[n-1];
+        let stoch_prev = stochastic.d[n - 2];
+        let price = closes[n - 1];
+
+        let info = format!(
+            "p:{:.2}, stoc{:.2}, stoc_prev:{:.2}, em:{:.2}",
+            price, stoch_current, stoch_prev, ema200
+        );
+
+        println!("{} ", info);
+
+        if stoch_prev < 20.0 && stoch_current > 20.0 && price > ema200 {
+            (Long, info)
+        } else if stoch_prev > 80.0 && stoch_current < 80.0 && price < ema200 {
+            (Short, info)
+        } else {
+            (Wait, info)
+        }
+    }
+}
+
 
 
 

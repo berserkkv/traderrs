@@ -59,6 +59,7 @@ pub fn format_timeframe(timeframe: &Timeframe) -> String {
         Timeframe::Min15 => "15m".to_string(),
         Timeframe::Min30 => "30m".to_string(),
         Timeframe::Hour1 => "1h".to_string(),
+        Timeframe::Hour4 => "4h".to_string(),
     }
 }
 pub fn should_close_position(price: f64, bot: &Bot) -> bool {
@@ -84,6 +85,7 @@ pub fn is_timeframe_now(bot: &Bot, minute: u32) -> bool {
         Timeframe::Min15 => minute % 15 == 0,
         Timeframe::Min30 => minute % 30 == 0,
         Timeframe::Hour1 => minute % 60 == 0,
+        Timeframe::Hour4 => minute % 240 == 0,
     }
 }
 pub fn shift_stop_loss(bot: &mut Bot) {

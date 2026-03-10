@@ -15,7 +15,7 @@ use crate::api::get_router;
 use crate::connector::BinanceConnector;
 use crate::entry_manager::EntryManager;
 use crate::enums::Symbol::{BnbUsdt, BtcUsdt, EthUsdt, SolUsdt};
-use crate::enums::Timeframe::{Hour1, Min1, Min15, Min30, Min5};
+use crate::enums::Timeframe::{Hour1, Hour4, Min1, Min15, Min30, Min5};
 use crate::logger::init_logger;
 use crate::models::bot::Bot;
 use crate::models::models::{Container, SharedVec};
@@ -94,8 +94,10 @@ fn init_bots() -> Vec<Bot> {
     let stop_loss_ratio = 0.4;
     let trailing_stop_activation_point = 0.1;
 
-    let tf = [Min1, Min5, Min15, Min30, Hour1];
-    let st = ["EmaMacd", "EmaMacd2", "EmaBounce"];
+    let tf = [Min1, Min5, Min15, Hour1, Hour4];
+    let st = ["EmaMacd", "EmaMacd2", "EmaBounce", "StocBorder"];
+    //let st = ["StocBorder"];
+
     let smb = [SolUsdt, EthUsdt, BnbUsdt, BtcUsdt];
 
     for t in tf.iter() {

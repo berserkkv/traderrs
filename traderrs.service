@@ -4,7 +4,7 @@ Description=Traderrs Rust Binary Service
 After=network.target
 
 [Service]
-User=n
+User=b
 ExecStart=/home/n/traderrs
 Restart=no
 RestartSec=5

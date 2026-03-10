@@ -1,6 +1,6 @@
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::models::StrategyContainer;
-use crate::strategy::str_impl::{EmaBounce, EmaMacd, EmaMacd2};
+use crate::strategy::str_impl::{EmaBounce, EmaMacd, EmaMacd2, StocBorder};
 use std::sync::Arc;
 
 pub trait Strategy {
@@ -14,6 +14,7 @@ pub fn get_strategy(name: &str) -> Arc<dyn Strategy + Send + Sync> {
         "emamacd" => Arc::new(EmaMacd {}),
         "emamacd2" => Arc::new(EmaMacd2 {}),
         "emabounce" => Arc::new(EmaBounce {}),
+        "stocborder" => Arc::new(StocBorder {}),
         _ => Arc::new(DummyStrategy {}),
     }
 }

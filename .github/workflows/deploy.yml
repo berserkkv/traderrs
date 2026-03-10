@@ -11,7 +11,7 @@ jobs:
 
     env:
       REMOTE_USER: b
-      REMOTE_HOST: 77.37.96.91
+      REMOTE_HOST: 92.113.151.200
       REMOTE_DIR: /home/b/traderrs
       REMOTE_BIN: /home/b/traderrs/traderrs
       SERVICE_NAME: traderrs.service

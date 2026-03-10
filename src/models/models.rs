@@ -5,6 +5,7 @@ use chrono::{DateTime, FixedOffset, Utc};
 use serde::{Deserialize, Serialize};
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
+use crate::strategy::str_impl::StocBorder;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -74,6 +75,7 @@ pub struct StrategyContainer {
     pub candles_map: HashMap<(Timeframe, Symbol), Vec<Candle>>,
     pub macd: HashMap<(Timeframe, Symbol), Macd>,
     pub ema: HashMap<(Timeframe, Symbol, usize), Vec<f64>>,
+    pub stochastic: HashMap<(Timeframe, Symbol), Stochastic>,
 }
 impl StrategyContainer {
     pub fn new() -> Self {
@@ -81,6 +83,7 @@ impl StrategyContainer {
             candles_map: HashMap::new(),
             macd: HashMap::new(),
             ema: HashMap::new(),
+            stochastic: HashMap::new(),
         }
     }
     pub fn reset(&mut self) {
@@ -91,11 +94,16 @@ impl StrategyContainer {
 
     pub fn calculate_all(&mut self) {
         for ((timeframe, symbol), candles) in self.candles_map.iter() {
-            let (macd, signal, histogram) = ta::macd_slice(&tools::get_close_prices(&candles));
+            let close_prices = tools::get_close_prices(candles);
+            let high_prices = tools::get_high_prices(candles);
+            let low_prices = tools::get_low_prices(candles);
+            let (macd, signal, histogram) = ta::macd_slice(&close_prices);
+            let (k, d) = ta::stochastic_slice(&close_prices, &high_prices, &low_prices, 14, 1, 3);
             self.macd.insert((*timeframe, *symbol), Macd { macd, signal, histogram });
-            self.ema.insert((*timeframe, *symbol, 20), ta::ema_slice(&tools::get_close_prices(candles), 20));
-            self.ema.insert((*timeframe, *symbol, 50), ta::ema_slice(&tools::get_close_prices(candles), 50));
-            self.ema.insert((*timeframe, *symbol, 200), ta::ema_slice(&tools::get_close_prices(candles), 200));
+            self.ema.insert((*timeframe, *symbol, 20), ta::ema_slice(&close_prices, 20));
+            self.ema.insert((*timeframe, *symbol, 50), ta::ema_slice(&close_prices, 50));
+            self.ema.insert((*timeframe, *symbol, 200), ta::ema_slice(&close_prices, 200));
+            self.stochastic.insert((*timeframe, *symbol), Stochastic {k, d});
         }
     }
 
@@ -105,6 +113,10 @@ impl StrategyContainer {
 
     pub fn get_ema(&self, timeframe: &Timeframe, symbol: &Symbol, period: usize) -> Option<&Vec<f64>> {
         self.ema.get(&(*timeframe, *symbol, period))
+    }
+    
+    pub fn get_stochastic(&self, timeframe: &Timeframe, symbol: &Symbol) -> Option<&Stochastic> {
+        self.stochastic.get(&(*timeframe, *symbol))
     }
 }
 
@@ -139,6 +151,12 @@ pub struct Macd {
     pub macd: Vec<f64>,
     pub signal: Vec<f64>,
     pub histogram: Vec<f64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Stochastic {
+    pub k: Vec<f64>,
+    pub d: Vec<f64>,
 }
 
 #[derive(Deserialize)]

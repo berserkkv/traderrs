@@ -110,3 +110,73 @@ pub fn bollinger_percent_b_slice(prices: &[f64], period: usize) -> Vec<f64> {
     }
     result
 }
+
+
+#[allow(dead_code)]
+pub fn stochastic_slice(
+    close: &[f64],
+    high: &[f64],
+    low: &[f64],
+    period_k: usize,
+    smooth_k: usize,
+    period_d: usize,
+) -> (Vec<f64>, Vec<f64>) {
+
+    let n = close.len();
+    let mut raw_k = vec![f64::NAN; n];
+
+    if n == 0 || period_k == 0 {
+        return (raw_k.clone(), raw_k);
+    }
+
+    // --- raw stochastic ---
+    for i in period_k - 1..n {
+        let low_slice = &low[i + 1 - period_k..=i];
+        let high_slice = &high[i + 1 - period_k..=i];
+
+        let lowest = low_slice.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+        let highest = high_slice.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+
+        let denom = highest - lowest;
+
+        raw_k[i] = if denom == 0.0 {
+            0.0
+        } else {
+            100.0 * (close[i] - lowest) / denom
+        };
+    }
+
+    // --- smooth %K ---
+    let k = sma_slice(&raw_k, smooth_k);
+
+    // --- %D ---
+    let d = sma_slice(&k, period_d);
+
+    (k, d)
+}
+
+pub fn sma_slice(values: &[f64], period: usize) -> Vec<f64> {
+    let mut result = vec![f64::NAN; values.len()];
+
+    if period == 0 || values.len() < period {
+        return result;
+    }
+
+    for i in period - 1..values.len() {
+        let mut sum = 0.0;
+        let mut count = 0;
+
+        for j in i + 1 - period..=i {
+            if values[j].is_finite() {
+                sum += values[j];
+                count += 1;
+            }
+        }
+
+        if count > 0 {
+            result[i] = sum / count as f64;
+        }
+    }
+
+    result
+}
