@@ -63,7 +63,7 @@ jobs:
             sudo mv /tmp/traderrs.service $SERVICE_REMOTE_PATH
             sudo chmod 644 $SERVICE_REMOTE_PATH
             sudo systemctl daemon-reload
-            sudo systemctl enable $SERVICE_NAME`
+            sudo systemctl enable $SERVICE_NAME
             sudo systemctl restart $SERVICE_NAME
             sudo systemctl status $SERVICE_NAME --no-pager
           EOF
