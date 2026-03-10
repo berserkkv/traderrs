@@ -74,6 +74,7 @@ impl Bot {
             tools::format_timeframe(&timeframe),
             format_symbol(&symbol)
         );
+
         let now = tools::get_date(3);
         let strategy = strategy::get_strategy(&strategy_name);
 
