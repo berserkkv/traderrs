@@ -81,12 +81,12 @@
     <div>
       <select  bind:value={selectedTimeframe} name="timeframe" id="timeframe"  on:change={updateTimeframe}>
         <option value="all">All</option>
-        <option value="Min1">1m</option>
-        <option value="Min5">5m</option>
-        <option value="Min15">15m</option>
-        <option value="Min30">30m</option>
-        <option value="Hour1">1h</option>
-        <option value="Hour4">4h</option>
+        <option value="1m">1m</option>
+        <option value="5m">5m</option>
+        <option value="15m">15m</option>
+        <option value="30m">30m</option>
+        <option value="1h">1h</option>
+        <option value="4h">4h</option>
       </select>
     </div>
   </div>
