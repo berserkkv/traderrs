@@ -51,13 +51,15 @@
 
 <div class="pt-2 max-w-3xl flex-col justify-between m-auto">
   <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg text-neutral-500 flex">
-    <p>
-      Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}"
-        >{totalCapital.toFixed(2)}
-        ({totalRoe.toFixed(2)}%)</span
-      >
-    </p>
-    <a class="ml-2 underline text-blue-600" href="/bots/statistics">Statistics</a>
+<!--    <p>-->
+<!--      Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}"-->
+<!--        >{totalCapital.toFixed(2)}-->
+<!--        ({totalRoe.toFixed(2)}%)</span-->
+<!--      >-->
+<!--    </p>-->
+    <a class="ml-1 underline text-blue-600" href="/bots/statistics">Statistics</a>
+    <div>
+    </div>
   </div>
   {#each data.bots as b}
     <div
