@@ -12,6 +12,7 @@ use mime_guess::MimeGuess;
 use rust_embed::RustEmbed;
 use std::collections::HashMap;
 use std::sync::Arc;
+use rusqlite::params;
 use sysinfo::System;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -120,18 +121,34 @@ pub async fn get_bot_by_name(Path(id): Path<String>, Extension(bots): Extension<
     Json(bot)
 }
 
-pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>) -> Json<Vec<Bot>> {
+pub async fn get_all_bot(Extension(bots): Extension<Arc<SharedVec<Bot>>>, Query(params): Query<HashMap<String, String>>) -> Json<Vec<Bot>> {
     let bot_vec: &mut Vec<Bot>;
+
+    if let Some(timeframe) = params.get("timeframe") {
+        if !timeframe.eq("") && !timeframe.to_lowercase().eq("all") {
+        }
+    }
+
+    let timeframe = params.get("timeframe").map(|s| s.to_lowercase());
 
     unsafe { bot_vec = &mut *bots.0.get(); }
 
-    let mut v = Vec::with_capacity(bot_vec.len());
-    for b in bot_vec.iter() {
-        v.push(b.clone());
-    }
+    // Filter bots based on timeframe if provided
+    let mut filtered: Vec<Bot> = bot_vec
+        .iter()
+        .filter(|bot| match &timeframe {
+            Some(tf) =>{
+                let tf_lower = tf.to_lowercase();
+                tf_lower == "all" || tf_lower == "" || tf_lower == bot.timeframe.to_string()
+            }
+            None => true,
+        })
+        .cloned()
+        .collect();
 
-    tools::sort_bots(&mut v);
-    Json(v)
+
+    tools::sort_bots(&mut filtered);
+    Json(filtered)
 }
 
 pub async fn save_bot_states(Extension(bots): Extension<Arc<SharedVec<Bot>>>, Extension(c): Extension<Arc<Container>>) {

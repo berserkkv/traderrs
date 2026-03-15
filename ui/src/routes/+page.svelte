@@ -2,6 +2,8 @@
   import System from "$lib/component/System.svelte";
   import {bgUpOrDown, calculateWinPercentage, textUpOrDown} from "$lib/tools.js";
   import * as tools from "$lib/tools";
+  import Orders from "$lib/component/Orders.svelte";
+  import {onMount} from "svelte";
 
   export let data: {
     bots: {
@@ -37,6 +39,19 @@
     }[];
   };
 
+  let selectedTimeframe: string = localStorage.getItem("selectedTimeframe") || "All";
+
+
+
+  $: localStorage.setItem("selectedTimeframe", selectedTimeframe);
+
+
+
+  $: filteredBots = data.bots.filter(b => {
+    if (selectedTimeframe === "all" || selectedTimeframe === "") return true;
+    return b.timeframe.toLowerCase() === selectedTimeframe.toLowerCase();
+  });
+
   const totalCapital = data.bots.reduce(
     (sum, bot) => sum + bot.capital + bot.order_capital,
     0
@@ -51,17 +66,21 @@
 
 <div class="pt-2 max-w-3xl flex-col justify-between m-auto">
   <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg text-neutral-500 flex">
-<!--    <p>-->
-<!--      Total: <span class=" text-sm font-semibold {textUpOrDown(totalRoe)}"-->
-<!--        >{totalCapital.toFixed(2)}-->
-<!--        ({totalRoe.toFixed(2)}%)</span-->
-<!--      >-->
-<!--    </p>-->
     <a class="ml-1 underline text-blue-600" href="/bots/statistics">Statistics</a>
+
     <div>
+      <select name="timeframe" id="timeframe" bind:value={selectedTimeframe}>
+        <option value="all">All</option>
+        <option value="Min1">1m</option>
+        <option value="Min5">5m</option>
+        <option value="Min15">15m</option>
+        <option value="Min30">30m</option>
+        <option value="Hour1">1h</option>
+        <option value="Hour4">4h</option>
+      </select>
     </div>
   </div>
-  {#each data.bots as b}
+  {#each filteredBots as b}
     <div
       class="{b.is_not_active
         ? 'text-neutral-600'
