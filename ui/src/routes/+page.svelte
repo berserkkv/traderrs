@@ -40,26 +40,42 @@
   };
 
   // Default value for SSR
-  let selectedTimeframe: string = "all";
+  let selectedTimeframe: string = "all"
+  let selectedStrategy : string = "all";
+
 
   // Load from localStorage when component mounts
   onMount(() => {
-    const stored = localStorage.getItem("selectedTimeframe");
-    if (stored) {
-      selectedTimeframe = stored;
+    const storedTimeframe = localStorage.getItem("timeframe");
+    const storedStrategy = localStorage.getItem("strategy");
+    if (storedTimeframe) {
+      selectedTimeframe = storedTimeframe;
+    }
+    if (storedStrategy) {
+      selectedStrategy = storedStrategy;
     }
   });
 
   // Save to localStorage whenever the user changes the select
   function updateTimeframe(e: Event) {
     selectedTimeframe = (e.target as HTMLSelectElement).value;
-    localStorage.setItem("selectedTimeframe", selectedTimeframe);
+    localStorage.setItem("timeframe", selectedTimeframe);
+  }
+
+  function updateStrategy(e: Event) {
+    selectedStrategy = (e.target as HTMLSelectElement).value;
+    localStorage.setItem("strategy", selectedStrategy);
   }
 
 
   $: filteredBots = data.bots.filter(b => {
-    if (selectedTimeframe === "all" || selectedTimeframe === "") return true;
-    return b.timeframe.toLowerCase() === selectedTimeframe.toLowerCase();
+    const timeframeMatch = selectedTimeframe === "all" || selectedTimeframe === "" ? true
+    : b.timeframe.toLowerCase() === selectedTimeframe.toLowerCase();
+
+    const strategyMatch = selectedStrategy === "all" || selectedStrategy === "" ? true
+            : b.strategy_name.toLowerCase() === selectedStrategy.toLowerCase();
+
+    return timeframeMatch && strategyMatch;
   });
 
   const totalCapital = data.bots.reduce(
@@ -78,15 +94,24 @@
   <div class="text-xs mx-1 mb-2 px-2 card-bg rounded-lg text-neutral-500 flex">
     <a class="ml-1 underline text-blue-600" href="/bots/statistics">Statistics</a>
 
-    <div>
+    <div class="ml-1 bg-slate-800 rounded text-neutral-400">
       <select  bind:value={selectedTimeframe} name="timeframe" id="timeframe"  on:change={updateTimeframe}>
-        <option value="all">All</option>
+        <option value="all">Timeframe</option>
         <option value="1m">1m</option>
         <option value="5m">5m</option>
         <option value="15m">15m</option>
         <option value="30m">30m</option>
         <option value="1h">1h</option>
         <option value="4h">4h</option>
+      </select>
+    </div>
+    <div class="ml-1 bg-slate-800 rounded text-neutral-400">
+      <select  bind:value={selectedStrategy} name="strategy" id="strategy"  on:change={updateStrategy}>
+        <option value="all">Strategy</option>
+        <option value="emamacd">EmaMacd</option>
+        <option value="emamacd2">EmaMacd2</option>
+        <option value="emabounce">EmaBounce</option>
+        <option value="stocborder">StocBorder</option>
       </select>
     </div>
   </div>
