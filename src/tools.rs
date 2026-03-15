@@ -85,7 +85,7 @@ pub fn is_timeframe_now(bot: &Bot, now: &DateTime<FixedOffset>) -> bool {
         Timeframe::Min15 => now.minute() % 15 == 0,
         Timeframe::Min30 => now.minute() % 30 == 0,
         Timeframe::Hour1 => now.minute() % 60 == 0,
-        Timeframe::Hour4 => now.hour() % 4 == 0,
+        Timeframe::Hour4 => now.hour() % 4 == 0 && now.minute() % 60 == 0,
 
     }
 }

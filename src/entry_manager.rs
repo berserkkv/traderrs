@@ -129,7 +129,7 @@ impl EntryManager {
               || (*tf == Timeframe::Min15 && now.minute() % 15 == 0)
               || (*tf == Timeframe::Min30 && now.minute() % 30 == 0)
               || (*tf == Timeframe::Hour1 && now.minute() % 60 == 0)
-              || (*tf == Timeframe::Hour4 && now.hour() % 4 == 0)
+              || (*tf == Timeframe::Hour4 && now.hour() % 4 == 0 && now.minute() & 60 == 0)
         });
 
         for tf in timeframes_to_fetch {
