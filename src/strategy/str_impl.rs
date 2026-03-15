@@ -194,7 +194,6 @@ impl Strategy for StocBorder {
             price, stoch_current, stoch_prev, ema200
         );
 
-        println!("{} ", info);
 
         if stoch_prev < 20.0 && stoch_current > 20.0 && price > ema200 {
             (Long, info)

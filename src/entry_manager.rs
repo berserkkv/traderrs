@@ -1,3 +1,4 @@
+use std::cmp::min;
 use crate::connector::BinanceConnector;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
 use crate::models::bot::Bot;
@@ -55,7 +56,7 @@ impl EntryManager {
                 self.save_and_reset_bots(bots).await;
             }
 
-            self.update_candles(now.minute()).await;
+            self.update_candles(&now).await;
 
             self.calculate_ta().await;
 
@@ -110,7 +111,7 @@ impl EntryManager {
         }
     }
 
-    async fn update_candles(&mut self, minute: u32) {
+    async fn update_candles(&mut self, now: &DateTime<FixedOffset>) {
         let connector = Arc::clone(&self.connector);
         let semaphore = Arc::new(Semaphore::new(25)); // Limit concurrent tasks
         let mut fetch_tasks = Vec::new();
@@ -121,12 +122,14 @@ impl EntryManager {
             Timeframe::Min15,
             Timeframe::Min30,
             Timeframe::Hour1,
+            Timeframe::Hour4,
         ].into_iter().filter(|tf| {
             *tf == Timeframe::Min1
-              || (*tf == Timeframe::Min5 && minute % 5 == 0)
-              || (*tf == Timeframe::Min15 && minute % 15 == 0)
-              || (*tf == Timeframe::Min30 && minute % 30 == 0)
-              || (*tf == Timeframe::Hour1 && minute % 60 == 0)
+              || (*tf == Timeframe::Min5 && now.minute() % 5 == 0)
+              || (*tf == Timeframe::Min15 && now.minute() % 15 == 0)
+              || (*tf == Timeframe::Min30 && now.minute() % 30 == 0)
+              || (*tf == Timeframe::Hour1 && now.minute() % 60 == 0)
+              || (*tf == Timeframe::Hour4 && now.hour() % 4 == 0)
         });
 
         for tf in timeframes_to_fetch {
@@ -154,7 +157,7 @@ impl EntryManager {
             }
         }
 
-        debug!("minute: {}, tasks: {}", minute, fetch_tasks.len());
+        debug!("{}h, {}m, tasks: {}", now.hour(), now.minute(), fetch_tasks.len());
 
         for task in fetch_tasks {
             if let Ok(Some((key, candles))) = task.await {

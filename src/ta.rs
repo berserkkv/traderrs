@@ -3,11 +3,11 @@
 #[allow(dead_code)]
 pub fn bollinger_bands_b(prices: &[f64], period: usize) -> f64 {
     let n = prices.len();
-    if n < period || period == 0 { return f64::NAN; }
+    if n < period || period < 2 { return f64::NAN; }
 
     let slice = &prices[n - period..];
     let sma = slice.iter().sum::<f64>() / period as f64;
-    let variance = slice.iter().map(|p| (p - sma).powi(2)).sum::<f64>() / period as f64;
+    let variance = slice.iter().map(|p| (p - sma).powi(2)).sum::<f64>() / ( period as f64 - 1.0 );
     let stddev = variance.sqrt();
     let upper = sma + 2.0 * stddev;
     let lower = sma - 2.0 * stddev;

@@ -325,7 +325,7 @@ impl Bot {
     }
 
     pub fn is_not_allowed_for_scanning(&self, now: &DateTime<FixedOffset>) -> bool {
-        self.is_not_active || self.capital < 85.0 || !is_timeframe_now(self, now.minute()) || self.in_pos
+        self.is_not_active || self.capital < 85.0 || !is_timeframe_now(self, now) || self.in_pos
     }
 }
 

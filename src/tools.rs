@@ -2,7 +2,7 @@ use crate::calculator::{calculate_pnl, calculate_roe};
 use crate::enums::{OrderCommand, Timeframe};
 use crate::models::bot::Bot;
 use crate::models::models::{BotStatistic, Candle};
-use chrono::{DateTime, FixedOffset, NaiveDateTime, Utc};
+use chrono::{DateTime, FixedOffset, NaiveDateTime, Timelike, Utc};
 use log::debug;
 use std::cmp::Ordering;
 use std::time::Duration;
@@ -78,14 +78,15 @@ pub fn update_pnl_and_roe(bot: &mut Bot, price: f64) {
     );
     bot.roe = calculate_roe(bot.order_entry_price, price, bot.leverage, &bot.order_type);
 }
-pub fn is_timeframe_now(bot: &Bot, minute: u32) -> bool {
+pub fn is_timeframe_now(bot: &Bot, now: &DateTime<FixedOffset>) -> bool {
     match bot.timeframe {
         Timeframe::Min1 => true,
-        Timeframe::Min5 => minute % 5 == 0,
-        Timeframe::Min15 => minute % 15 == 0,
-        Timeframe::Min30 => minute % 30 == 0,
-        Timeframe::Hour1 => minute % 60 == 0,
-        Timeframe::Hour4 => minute % 240 == 0,
+        Timeframe::Min5 => now.minute() % 5 == 0,
+        Timeframe::Min15 => now.minute() % 15 == 0,
+        Timeframe::Min30 => now.minute() % 30 == 0,
+        Timeframe::Hour1 => now.minute() % 60 == 0,
+        Timeframe::Hour4 => now.hour() % 4 == 0,
+
     }
 }
 pub fn shift_stop_loss(bot: &mut Bot) {
@@ -159,7 +160,7 @@ pub fn sort_bot_statistics(bot_statisitcs: &mut Vec<BotStatistic>) -> &mut Vec<B
 }
 
 pub fn get_date(time_zone: i32) -> DateTime<FixedOffset> {
-    return Utc::now().with_timezone(&FixedOffset::east_opt(time_zone * 3600).unwrap());
+     Utc::now().with_timezone(&FixedOffset::east_opt(time_zone * 3600).unwrap())
 }
 
 pub fn parse_time(time_str: &str) -> DateTime<FixedOffset> {

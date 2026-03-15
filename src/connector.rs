@@ -106,7 +106,7 @@ impl BinanceConnector {
             .await?;
 
         let mut candles: Vec<Candle> = Vec::new();
-
+        
         for entry in res {
             let open_time = entry[0].as_u64().unwrap_or_default();
             let open = entry[1].as_str().unwrap_or("0").parse::<f64>()?;
