@@ -39,12 +39,22 @@
     }[];
   };
 
-  let selectedTimeframe: string = localStorage.getItem("selectedTimeframe") || "All";
+  // Default value for SSR
+  let selectedTimeframe: string = "all";
 
+  // Load from localStorage when component mounts
+  onMount(() => {
+    const stored = localStorage.getItem("selectedTimeframe");
+    if (stored) {
+      selectedTimeframe = stored;
+    }
+  });
 
-
-  $: localStorage.setItem("selectedTimeframe", selectedTimeframe);
-
+  // Save to localStorage whenever the user changes the select
+  function updateTimeframe(e: Event) {
+    selectedTimeframe = (e.target as HTMLSelectElement).value;
+    localStorage.setItem("selectedTimeframe", selectedTimeframe);
+  }
 
 
   $: filteredBots = data.bots.filter(b => {
@@ -69,7 +79,7 @@
     <a class="ml-1 underline text-blue-600" href="/bots/statistics">Statistics</a>
 
     <div>
-      <select name="timeframe" id="timeframe" bind:value={selectedTimeframe}>
+      <select  bind:value={selectedTimeframe} name="timeframe" id="timeframe"  on:change={updateTimeframe}>
         <option value="all">All</option>
         <option value="Min1">1m</option>
         <option value="Min5">5m</option>
