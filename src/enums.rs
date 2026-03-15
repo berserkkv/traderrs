@@ -49,12 +49,12 @@ impl Symbol {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Timeframe {
-    Min1,
-    Min5,
-    Min15,
-    Min30,
-    Hour1,
-    Hour4,
+    #[serde(rename = "1m")] Min1,
+    #[serde(rename = "5m")] Min5,
+    #[serde(rename = "15m")] Min15,
+    #[serde(rename = "30m")] Min30,
+    #[serde(rename = "1h")] Hour1,
+    #[serde(rename = "4h")] Hour4,
 }
 impl ToSql for Timeframe {
     fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {

@@ -38,6 +38,7 @@ jobs:
 
       - name: Save bot state
         run: curl -s "http://${REMOTE_HOST}:3030/api/v1/bots/state/save"
+        continue-on-error: true
 
       - name: Stop and disable old service
         run: |
