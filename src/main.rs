@@ -10,6 +10,7 @@ mod repository;
 mod strategy;
 mod ta;
 mod tools;
+mod constants;
 
 use crate::api::get_router;
 use crate::connector::BinanceConnector;

@@ -3,6 +3,7 @@ use crate::calculator::{
     calculate_take_profit, calculate_taker_fee,
 };
 use crate::connector::BinanceConnector;
+use crate::constants::MIN_CAPITAL_TO_STOP;
 use crate::enums::Symbol::SolUsdt;
 use crate::enums::Timeframe::Min1;
 use crate::enums::{OrderCommand, Symbol, Timeframe};
@@ -300,7 +301,7 @@ impl Bot {
         self.pnl = 0.0;
         self.roe = 0.0;
 
-        if self.capital <= 85.0 {
+        if self.capital <= MIN_CAPITAL_TO_STOP {
             self.is_not_active = true;
         }
 
@@ -325,7 +326,7 @@ impl Bot {
     }
 
     pub fn is_not_allowed_for_scanning(&self, now: &DateTime<FixedOffset>) -> bool {
-        self.is_not_active || self.capital < 85.0 || !is_timeframe_now(self, now) || self.in_pos
+        self.is_not_active || self.capital < MIN_CAPITAL_TO_STOP || !is_timeframe_now(self, now) || self.in_pos
     }
 }
 

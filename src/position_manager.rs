@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
-
+use crate::constants::MIN_CAPITAL_TO_STOP;
 
 pub struct PositionManager {
     bots: Arc<SharedVec<Bot>>,
@@ -71,6 +71,12 @@ impl PositionManager {
                 if should_close_position(price, &bot) {
                     if let Ok(order) = bot.close_position(price) {
                         to_close.push(order);
+                        if bot.capital <= MIN_CAPITAL_TO_STOP {
+                            if let Err(e) = self.container.repository.create_bot(bot) {
+                                bot.log = e.to_string();
+                            }
+                            bot.reset();
+                        }
                     }
                 } else {
                     update_pnl_and_roe(bot, price);

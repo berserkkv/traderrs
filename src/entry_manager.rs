@@ -52,9 +52,9 @@ impl EntryManager {
         loop {
             now = tools::get_date(3);
 
-            if now.hour() == 0 && now.minute() == 0 {
-                self.save_and_reset_bots(bots).await;
-            }
+            // if now.hour() == 0 && now.minute() == 0 {
+            //     self.save_and_reset_bots(bots).await;
+            // }
 
             self.update_candles(&now).await;
 
